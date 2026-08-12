@@ -1,0 +1,54 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  ml-service:
+    image: python:3.12-slim
+    working_dir: /app
+    command: sh -c "pip install -r requirements.txt && uvicorn app:app --host 0.0.0.0 --port 5000"
+    environment:
+      - MAX_TRAINING_ROWS=120000
+    volumes:
+      - ./ml-service:/app
+      - ./breast_cancer_40_features_1M.csv:/breast_cancer_40_features_1M.csv:ro
+    ports:
+      - "5000:5000"
+
+  backend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=4000
+      - MONGODB_URI=mongodb://mongo:27017/breast_cancer_ai
+      - JWT_SECRET=replace-with-a-long-random-secret
+      - FRONTEND_ORIGIN=http://localhost:5173
+      - ML_SERVICE_URL=http://ml-service:5000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongo
+      - ml-service
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      - VITE_API_URL=http://localhost:4000/api
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:

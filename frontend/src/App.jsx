@@ -1,0 +1,42 @@
+import { Navigate, Route, Routes } from "react-router-dom";
+import AppLayout from "./components/layout/AppLayout.jsx";
+import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import DatasetUpload from "./pages/DatasetUpload.jsx";
+import ModelTraining from "./pages/ModelTraining.jsx";
+import Prediction from "./pages/Prediction.jsx";
+import Evaluation from "./pages/Evaluation.jsx";
+import History from "./pages/History.jsx";
+import AdminPanel from "./pages/AdminPanel.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
+
+function Protected({ children }) {
+  const { token } = useAuth();
+  return token ? children : <Navigate to="/login" replace />;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route
+        path="/"
+        element={
+          <Protected>
+            <AppLayout />
+          </Protected>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="datasets" element={<DatasetUpload />} />
+        <Route path="training" element={<ModelTraining />} />
+        <Route path="prediction" element={<Prediction />} />
+        <Route path="evaluation" element={<Evaluation />} />
+        <Route path="history" element={<History />} />
+        <Route path="admin" element={<AdminPanel />} />
+      </Route>
+    </Routes>
+  );
+}
