@@ -14,8 +14,6 @@ COPY . .
 # Create uploads directory if not present
 RUN mkdir -p uploads
 
-# Railway dynamic port injection
-ENV PORT=4000
-EXPOSE 4000
+EXPOSE 5000
 
 CMD ["npm", "start"]

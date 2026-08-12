@@ -2,7 +2,7 @@
 
 ## Backend API
 
-Base URL: `http://localhost:4000/api`
+Base URL: `http://localhost:5000/api`
 
 ### Auth
 

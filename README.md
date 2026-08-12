@@ -47,7 +47,7 @@ npm run dev
 ## Default URLs
 
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:4000/api
+- Backend API: http://localhost:5000/api
 - ML Service: http://localhost:5000
 
 ## Workflow

@@ -17,7 +17,7 @@ Deploy `backend/` to Render, Railway, or a Node.js container.
 Required environment variables:
 
 ```bash
-PORT=4000
+PORT=5000
 MONGODB_URI=mongodb+srv://...
 JWT_SECRET=long-random-secret
 FRONTEND_ORIGIN=https://your-frontend.example.com
