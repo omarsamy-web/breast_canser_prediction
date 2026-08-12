@@ -33,7 +33,8 @@ The system consists of **4 Railway Services** inside a single Railway project:
 1. Click **+ New** -> **GitHub Repo** -> select this repository.
 2. In the service settings (**Settings** tab):
    - Set **Root Directory** to `ml-service`.
-   - Railway automatically detects `ml-service/Dockerfile` or `ml-service/railway.toml`.
+   - If you want Railway to use the service config file, set the config path to `/ml-service/railway.toml`.
+   - Railway can also build from `ml-service/Dockerfile` directly.
 3. Under **Variables**, add:
    ```env
    MAX_TRAINING_ROWS=120000
@@ -47,7 +48,8 @@ The system consists of **4 Railway Services** inside a single Railway project:
 1. Click **+ New** -> **GitHub Repo** -> select this repository.
 2. In the service settings (**Settings** tab):
    - Set **Root Directory** to `backend`.
-   - Railway automatically detects `backend/Dockerfile` or `backend/railway.toml`.
+   - If you want Railway to use the service config file, set the config path to `/backend/railway.toml`.
+   - Railway can also build from `backend/Dockerfile` directly.
 3. Under **Variables**, add:
    ```env
    MONGODB_URI=${{MongoDB.MONGO_URL}}
@@ -66,7 +68,8 @@ The system consists of **4 Railway Services** inside a single Railway project:
 1. Click **+ New** -> **GitHub Repo** -> select this repository.
 2. In the service settings (**Settings** tab):
    - Set **Root Directory** to `frontend`.
-   - Railway automatically detects `frontend/Dockerfile` or `frontend/railway.toml`.
+   - If you want Railway to use the service config file, set the config path to `/frontend/railway.toml`.
+   - Railway can also build from `frontend/Dockerfile` directly.
 3. Under **Variables**, add:
    ```env
    VITE_API_URL=https://<your-backend-domain>.up.railway.app/api
@@ -92,3 +95,13 @@ The system consists of **4 Railway Services** inside a single Railway project:
 | **`backend`** | `Dockerfile`, `railway.toml`, `Procfile`, wildcard CORS fallback |
 | **`frontend`** | `Dockerfile`, `railway.toml`, `Procfile`, `serve` SPA integration |
 | **Root** | `railway.json` |
+
+## Railway Monorepo Note
+
+Railway's root directory and config file path are separate settings. In this repo, each service lives in its own folder, so the safest setup is:
+
+- `backend` service -> root directory `backend`, config path `/backend/railway.toml`
+- `frontend` service -> root directory `frontend`, config path `/frontend/railway.toml`
+- `ml-service` service -> root directory `ml-service`, config path `/ml-service/railway.toml`
+
+If you prefer, you can also rely on the `Dockerfile` in each service folder and skip the Railway config file entirely.

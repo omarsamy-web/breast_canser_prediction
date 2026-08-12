@@ -184,6 +184,11 @@ def root():
     return {"status": "ok", "service": "ml-service", "version": "4.0.0", "ready": BEST_MODEL_PATH.exists()}
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok", "service": "ml-service"}
+
+
 @app.post("/train")
 def train(payload: TrainRequest):
     _, feature_names, scaler, x_train, x_test, y_train, y_test = load_training_data(payload.datasetPath)
