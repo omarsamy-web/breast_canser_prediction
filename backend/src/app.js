@@ -1,4 +1,3 @@
-import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -10,24 +9,39 @@ import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
-const corsOptions = {
-  origin: (origin, callback) => {
-    const allowed = (process.env.FRONTEND_ORIGIN || "http://localhost:5173")
-      .split(",")
-      .map(o => o.trim());
-    if (!origin || allowed.includes(origin) || allowed.includes("*")) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS: origin ${origin} not allowed`));
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+function isAllowedOrigin(origin) {
+  return Boolean(origin && (allowedOrigins.includes(origin) || allowedOrigins.includes("*")));
+}
 
 app.use(helmet());
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Vary", "Origin");
+  }
+
+  if (req.method === "OPTIONS") {
+    if (isAllowedOrigin(origin)) {
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        req.headers["access-control-request-headers"] || "Content-Type, Authorization"
+      );
+      return res.sendStatus(204);
+    }
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
 app.use(express.json({ limit: "2mb" }));
 app.use(morgan("dev"));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 }));
