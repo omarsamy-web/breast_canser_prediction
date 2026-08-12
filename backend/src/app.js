@@ -19,24 +19,29 @@ function isAllowedOrigin(origin) {
 }
 
 app.use(helmet());
+// Explicit CORS middleware — sets a complete, explicit set of CORS headers when the request Origin is allowed.
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   if (isAllowedOrigin(origin)) {
+    // Required
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
+    // Explicitly allowed methods and headers
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      req.headers["access-control-request-headers"] || "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    );
+    // Optional but useful
+    res.setHeader("Access-Control-Expose-Headers", "Authorization, Content-Length");
+    res.setHeader("Access-Control-Max-Age", "600"); // cache preflight for 10 minutes
+    // Vary ensures caches differentiate responses by Origin
     res.setHeader("Vary", "Origin");
   }
 
+  // If it's a preflight request, respond immediately
   if (req.method === "OPTIONS") {
-    if (isAllowedOrigin(origin)) {
-      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-      res.setHeader(
-        "Access-Control-Allow-Headers",
-        req.headers["access-control-request-headers"] || "Content-Type, Authorization"
-      );
-      return res.sendStatus(204);
-    }
     return res.sendStatus(204);
   }
 
