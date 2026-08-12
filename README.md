@@ -1,6 +1,6 @@
 # Breast-Cancer-AI-System
 
-AI-powered breast cancer prediction platform with a React dashboard, Node.js API, Python ML service, and MongoDB persistence.
+AI-powered breast cancer prediction platform with a React dashboard, Node.js API, Python ML service, and MongoDB or Supabase persistence.
 
 ## Architecture
 
@@ -69,6 +69,6 @@ This repository is ready for 1-click or multi-service deployment on **Railway**.
 
 ### Production Notes:
 - Use MongoDB Atlas or Railway MongoDB plugin for persistence.
+- Or set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` in the backend to use Supabase-backed persistence.
 - Deploy frontend, backend, and ML service as separate Railway services.
 - Set strong JWT secrets, locked CORS origins, HTTPS, and provider-level rate limits.
-

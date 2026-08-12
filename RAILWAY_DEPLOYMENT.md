@@ -55,7 +55,7 @@ The system consists of **4 Railway Services** inside a single Railway project:
    MONGODB_URI=${{MongoDB.MONGO_URL}}
    JWT_SECRET=replace-with-a-long-secure-random-secret
    ML_SERVICE_URL=https://<your-ml-service-domain>.up.railway.app
-   FRONTEND_ORIGIN=https://<your-frontend-domain>.up.railway.app
+   FRONTEND_ORIGIN=https://profound-contentment-production-a3e1.up.railway.app
    ```
    *(Note: You can update `FRONTEND_ORIGIN` after generating your frontend domain in Step 4).*
 
@@ -76,6 +76,8 @@ The system consists of **4 Railway Services** inside a single Railway project:
    ```
 4. Under **Networking**, click **Generate Domain** (e.g. `https://frontend-production.up.railway.app`).
 5. Copy your frontend public URL and update `FRONTEND_ORIGIN` in the **Backend API** service variables.
+   For this project, the live frontend origin is:
+   `https://profound-contentment-production-a3e1.up.railway.app`
 
 ---
 

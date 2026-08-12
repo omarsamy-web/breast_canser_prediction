@@ -22,7 +22,12 @@ MONGODB_URI=mongodb+srv://...
 JWT_SECRET=long-random-secret
 FRONTEND_ORIGIN=https://your-frontend.example.com
 ML_SERVICE_URL=https://your-ml-service.example.com
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_ANON_KEY=your-anon-key
 ```
+
+If you prefer Supabase-backed persistence, set the Supabase variables above and you can omit `MONGODB_URI`.
 
 ## ML Service
 

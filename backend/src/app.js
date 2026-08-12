@@ -10,9 +10,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
-
-app.use(helmet());
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
     const allowed = (process.env.FRONTEND_ORIGIN || "http://localhost:5173")
       .split(",")
@@ -24,7 +22,12 @@ app.use(cors({
     }
   },
   credentials: true,
-}));
+  optionsSuccessStatus: 200,
+};
+
+app.use(helmet());
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json({ limit: "2mb" }));
 app.use(morgan("dev"));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 }));
