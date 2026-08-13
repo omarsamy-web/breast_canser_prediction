@@ -22,6 +22,9 @@ export default function DatasetUpload() {
       await load();
     } catch (error) {
       console.error("Dataset upload failed:", error);
+      const serverError = error.response?.data;
+      const detailsMsg = serverError?.details ? `\nDetails: ${JSON.stringify(serverError.details)}` : "";
+      alert(`Dataset upload failed: ${serverError?.message || error.message}${detailsMsg}`);
     } finally {
       setLoading(false);
     }

@@ -40,7 +40,7 @@ async function analyzeLocalDataset(datasetPath) {
     stream
       .on("error", reject)
       .pipe(csvParser({
-        mapHeaders: ({ header }) => header.trim().replace(/^\uFEFF/, "")
+        mapHeaders: ({ header }) => header.trim().replace(/^\uFEFF/, "").replace(/\./g, "_").replace(/^\$/, "")
       }))
       .on("headers", (parsedHeaders) => {
         headers.splice(0, headers.length, ...parsedHeaders);

@@ -58,7 +58,7 @@ export async function analyzeDataset(filePath) {
     fs.createReadStream(resolvedPath)
       .on("error", reject)
       .pipe(csvParser({
-        mapHeaders: ({ header }) => header.trim().replace(/^\uFEFF/, "")
+        mapHeaders: ({ header }) => header.trim().replace(/^\uFEFF/, "").replace(/\./g, "_").replace(/^\$/, "")
       }))
       .on("headers", (parsedHeaders) => {
         headers.splice(0, headers.length, ...parsedHeaders);
