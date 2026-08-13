@@ -29,7 +29,7 @@ export const registerUser = (payload) => api.post("/auth/register", payload).the
 export const uploadDataset = (file) => {
   const form = new FormData();
   form.append("file", file);
-  return api.post("/dataset/upload", form, { headers: { "Content-Type": "multipart/form-data" } }).then((res) => res.data);
+  return api.post("/dataset/upload", form).then((res) => res.data);
 };
 export const getDatasets = () => api.get("/dataset").then((res) => res.data);
 export const trainModel = (payload) => api.post("/ml/train", payload).then((res) => res.data);

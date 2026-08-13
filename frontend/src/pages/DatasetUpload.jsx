@@ -16,10 +16,15 @@ export default function DatasetUpload() {
   async function submit() {
     if (!file) return;
     setLoading(true);
-    const data = await uploadDataset(file);
-    setActive(data);
-    await load();
-    setLoading(false);
+    try {
+      const data = await uploadDataset(file);
+      setActive(data);
+      await load();
+    } catch (error) {
+      console.error("Dataset upload failed:", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const preview = active?.stats?.preview || [];
