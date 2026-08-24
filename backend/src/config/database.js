@@ -4,7 +4,11 @@ import { hasSupabase } from "../services/supabase.store.js";
 export async function connectDatabase() {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
-    console.warn("MONGODB_URI is not set. API will start without database persistence.");
+    if (hasSupabase()) {
+      console.log("MongoDB not configured — using Supabase persistence.");
+    } else {
+      console.warn("MONGODB_URI is not set and Supabase is not fully configured. API will use the in-memory store (data resets on restart).");
+    }
     return;
   }
 
