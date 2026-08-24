@@ -4,8 +4,7 @@ import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
-import DatasetUpload from "./pages/DatasetUpload.jsx";
-import ModelTraining from "./pages/ModelTraining.jsx";
+import Analysis from "./pages/Analysis.jsx";
 import Prediction from "./pages/Prediction.jsx";
 import Evaluation from "./pages/Evaluation.jsx";
 import History from "./pages/History.jsx";
@@ -33,8 +32,7 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
-        <Route path="datasets" element={<DatasetUpload />} />
-        <Route path="training" element={<ModelTraining />} />
+        <Route path="analysis" element={<Analysis />} />
         <Route path="prediction" element={<Prediction />} />
         <Route path="evaluation" element={<Evaluation />} />
         <Route path="history" element={<History />} />

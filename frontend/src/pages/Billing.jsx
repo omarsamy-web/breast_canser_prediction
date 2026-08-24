@@ -1,56 +1,43 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { FaCheckCircle, FaCrown, FaExclamationTriangle } from "react-icons/fa";
-import { changePlan, getBilling } from "../services/api.js";
+import { FaCheckCircle, FaCreditCard, FaExclamationTriangle, FaGift } from "react-icons/fa";
+import { changePlan, checkoutCredits, getBilling, getCreditStatus } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
-
-function UsageBar({ label, used, limit }) {
-  const unlimited = limit === Infinity;
-  const pct = unlimited ? Math.min((used / Math.max(1, 10)) * 100, 100) : Math.min((used / limit) * 100, 100);
-  return (
-    <div>
-      <div className="mb-1 flex justify-between text-sm font-semibold">
-        <span>{label}</span>
-        <span className={pct >= 100 ? "text-red-500" : ""}>
-          {used} / {unlimited ? "∞" : limit}
-        </span>
-      </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-        <div
-          className={`h-full rounded-full transition-all ${pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-medical-blue"}`}
-          style={{ width: `${Math.max(pct, 3)}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 export default function Billing() {
   const { user, setUser } = useAuth();
+  const isStaff = user?.role === "Admin" || user?.role === "Doctor" || user?.role === "Researcher";
+  const [credits, setCredits] = useState(null);
   const [billing, setBilling] = useState(null);
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState(null);
 
-  async function load() {
+  useEffect(() => {
+    getCreditStatus().then(setCredits).catch(() => {});
+    if (isStaff) getBilling().then(setBilling).catch(() => {});
+  }, [isStaff]);
+
+  async function buy(packId) {
+    setBusy(packId);
+    setMessage(null);
     try {
-      setBilling(await getBilling());
-    } catch {
-      setMessage({ type: "error", text: "Could not load billing data." });
+      const res = await checkoutCredits(packId);
+      const status = await getCreditStatus();
+      setCredits(status);
+      setUser({ ...user, credits: res.credits });
+      setMessage({ type: "success", text: res.message });
+    } catch (error) {
+      setMessage({ type: "error", text: error.response?.data?.message || "Checkout failed." });
+    } finally {
+      setBusy(null);
     }
   }
-
-  useEffect(() => {
-    load();
-  }, []);
 
   async function switchPlan(planId) {
     setBusy(planId);
     setMessage(null);
     try {
-      const result = await changePlan(planId);
-      if (result.user) setUser(result.user);
-      await load();
-      setMessage({ type: "success", text: result.message });
+      await changePlan(planId);
+      setMessage({ type: "success", text: `Plan switched to ${planId}.` });
     } catch (error) {
       setMessage({ type: "error", text: error.response?.data?.message || "Plan switch failed." });
     } finally {
@@ -58,20 +45,12 @@ export default function Billing() {
     }
   }
 
-  if (!billing) {
-    return <p className="text-sm text-slate-500">Loading billing…</p>;
-  }
-
-  const { planDetails, quotas, usage, plans } = billing;
-  const currentPlan = planDetails?.id || user?.plan || "free";
-
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-extrabold">Billing & Plan</h1>
+        <h1 className="text-2xl font-extrabold">{isStaff ? "Clinic Plans" : "Credits & Billing"}</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          You are on the <strong>{planDetails?.name}</strong> plan.
-          Payments are in preview — switching is free for now.
+          Payments are in preview — no card is charged yet.
         </p>
       </header>
 
@@ -87,71 +66,91 @@ export default function Billing() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-white/60 bg-white/80 p-6 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
-        <h2 className="mb-4 flex items-center gap-2 font-bold"><FaCrown className="text-pink-500" /> This month's usage</h2>
-        <div className="grid gap-5 sm:grid-cols-3">
-          <UsageBar label="Predictions" used={usage.predictionsThisMonth} limit={quotas.predictionsPerMonth} />
-          <UsageBar label="Trainings" used={usage.trainingsThisMonth} limit={quotas.trainingsPerMonth} />
-          <UsageBar label="Datasets" used={usage.datasets} limit={quotas.maxDatasets} />
-        </div>
-        {(usage.predictionsThisMonth >= quotas.predictionsPerMonth ||
-          usage.trainingsThisMonth >= quotas.trainingsPerMonth) && (
-          <p className="mt-4 flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-            <FaExclamationTriangle /> You have hit a plan limit this month. Upgrade below to keep predicting.
-          </p>
-        )}
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-3">
-        {plans.map((plan) => {
-          const isCurrent = plan.id === currentPlan;
-          return (
-            <div
-              key={plan.id}
-              className={`flex flex-col rounded-2xl border p-6 shadow-sm ${
-                isCurrent
-                  ? "border-medical-blue ring-2 ring-medical-blue"
-                  : "border-white/60 bg-white/80 dark:border-white/10 dark:bg-slate-900/70"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold">{plan.name}</h3>
-                {isCurrent && <span className="rounded-full bg-medical-blue px-3 py-0.5 text-xs font-bold text-white">Current</span>}
+      {!isStaff && (
+        <>
+          <section className="rounded-2xl border border-white/60 bg-white/80 p-6 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+            <h2 className="mb-4 flex items-center gap-2 font-bold"><FaCreditCard className="text-medical-blue" /> Your prediction balance</h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-800/60">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Free prediction</p>
+                <p className={`mt-1 text-2xl font-extrabold ${credits?.freePredictionAvailable ? "text-emerald-500" : "text-slate-400 line-through"}`}>
+                  {credits?.freePredictionAvailable ? "Available" : "Used"}
+                </p>
               </div>
-              <p className="mt-1 min-h-8 text-xs text-slate-500 dark:text-slate-400">{plan.description}</p>
-              <p className="mt-3">
-                <span className="text-3xl font-extrabold">${plan.priceMonthly}</span>
-                <span className="text-xs text-slate-500"> /month</span>
-              </p>
-              <ul className="mt-4 flex-1 space-y-2 text-xs">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <FaCheckCircle className="mt-0.5 shrink-0 text-emerald-500" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                disabled={isCurrent || busy !== null}
-                onClick={() => switchPlan(plan.id)}
-                className={`mt-5 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-                  isCurrent
-                    ? "cursor-default bg-slate-100 text-slate-400 dark:bg-slate-800"
-                    : busy === plan.id
-                      ? "bg-medical-blue/60 text-white"
-                      : "bg-medical-blue text-white shadow-lg shadow-blue-500/20 hover:brightness-110"
-                }`}
-              >
-                {isCurrent ? "Active plan" : busy === plan.id ? "Switching…" : `Switch to ${plan.name}`}
-              </button>
+              <div className="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-800/60">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Paid credits left</p>
+                <p className="mt-1 text-2xl font-extrabold">{credits?.credits ?? user?.credits ?? 0}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-800/60">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total predictions</p>
+                <p className="mt-1 text-2xl font-extrabold">{(credits?.freePredictionAvailable ? 0 : 1) + (credits?.credits ?? 0)} available</p>
+              </div>
             </div>
-          );
-        })}
-      </section>
+            {!credits?.freePredictionAvailable && (credits?.credits ?? 0) === 0 && (
+              <p className="mt-4 flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                <FaExclamationTriangle /> Buy a credit pack below to run your next prediction.
+              </p>
+            )}
+          </section>
 
-      <p className="text-xs text-slate-400">
-        Need higher limits or team seats? <Link to="/app/prediction" className="font-semibold text-medical-blue">Keep using the app</Link> while we finalize Stripe checkout.
-      </p>
+          <section className="grid gap-6 sm:grid-cols-3">
+            {(credits?.packs || []).map((pack) => (
+              <div key={pack.id} className={`flex flex-col rounded-2xl border p-6 shadow-sm ${pack.popular ? "border-medical-blue ring-2 ring-medical-blue" : "border-white/60 bg-white/80 dark:border-white/10 dark:bg-slate-900/70"}`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold">{pack.label}</h3>
+                  {pack.popular && <span className="rounded-full bg-medical-blue px-3 py-0.5 text-xs font-bold text-white">Best value</span>}
+                </div>
+                <p className="mt-3"><span className="text-3xl font-extrabold">${pack.price}</span></p>
+                <p className="mt-1 text-xs text-slate-500">{pack.credits} prediction credit{pack.credits > 1 ? "s" : ""} · never expires</p>
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => buy(pack.id)}
+                  className="btn-primary mt-5 w-full py-2.5 text-sm"
+                >
+                  {busy === pack.id ? "Processing…" : "Buy now"}
+                </button>
+              </div>
+            ))}
+          </section>
+
+          <p className="flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200">
+            <FaGift className="mt-0.5 shrink-0" />
+            Every new account starts with one free prediction. Credits are consumed only on successful predictions.
+          </p>
+        </>
+      )}
+
+      {isStaff && billing && (
+        <section className="grid gap-6 lg:grid-cols-3">
+          {(billing.plans || []).map((plan) => {
+            const current = plan.id === (user?.plan || billing.plan);
+            return (
+              <div key={plan.id} className={`flex flex-col rounded-2xl border p-6 shadow-sm ${current ? "border-medical-blue ring-2 ring-medical-blue" : "border-white/60 bg-white/80 dark:border-white/10 dark:bg-slate-900/70"}`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold">{plan.name}</h3>
+                  {current && <span className="rounded-full bg-medical-blue px-3 py-0.5 text-xs font-bold text-white">Current</span>}
+                </div>
+                <p className="mt-1 min-h-8 text-xs text-slate-500 dark:text-slate-400">{plan.description}</p>
+                <p className="mt-3"><span className="text-3xl font-extrabold">${plan.priceMonthly}</span><span className="text-xs text-slate-500"> /month</span></p>
+                <ul className="mt-4 flex-1 space-y-2 text-xs">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2"><FaCheckCircle className="mt-0.5 shrink-0 text-emerald-500" /> {f}</li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  disabled={current || busy !== null}
+                  onClick={() => switchPlan(plan.id)}
+                  className="btn-primary mt-5 w-full py-2.5 text-sm disabled:cursor-default disabled:opacity-50"
+                >
+                  {current ? "Active plan" : busy === plan.id ? "Switching…" : `Switch to ${plan.name}`}
+                </button>
+              </div>
+            );
+          })}
+        </section>
+      )}
     </div>
   );
 }

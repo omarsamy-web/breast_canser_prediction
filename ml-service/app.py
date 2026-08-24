@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import joblib
+import os
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
@@ -25,11 +26,14 @@ from sklearn.tree import DecisionTreeClassifier
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent
-DEFAULT_DATASET = BASE_DIR / "datasets" / "breast_cancer_edited.csv"
+DEFAULT_DATASET = PROJECT_DIR / "breast_cancer_40_features_1M.csv"
 SAVED_MODELS_DIR = BASE_DIR / "saved_models"
 METRICS_DIR = BASE_DIR / "models"
 BEST_MODEL_PATH = SAVED_MODELS_DIR / "best_model.joblib"
 METRICS_PATH = METRICS_DIR / "metrics.joblib"
+
+# Cap training rows so the 1M-row dataset trains in minutes, not hours.
+MAX_TRAIN_ROWS = int(os.environ.get("MAX_TRAIN_ROWS", "100000"))
 
 for directory in [SAVED_MODELS_DIR, METRICS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
@@ -72,11 +76,12 @@ def resolve_dataset(path: Optional[str]) -> Path:
             return dataset_path
 
     candidates = [
+        PROJECT_DIR / "breast_cancer_40_features_1M.csv",
+        BASE_DIR / "breast_cancer_40_features_1M.csv",
+        BASE_DIR / "datasets" / "breast_cancer_40_features_1M.csv",
         BASE_DIR / "datasets" / "breast_cancer_edited.csv",
         BASE_DIR / "breast_cancer_edited.csv",
         PROJECT_DIR / "breast_cancer_edited.csv",
-        BASE_DIR / "datasets" / "breast_cancer_40_features_1M.csv",
-        PROJECT_DIR / "breast_cancer_40_features_1M.csv",
     ]
     for candidate in candidates:
         if candidate.exists():
@@ -101,6 +106,8 @@ def load_training_data(path: Optional[str]):
         raise HTTPException(status_code=400, detail="CSV must contain a diagnosis column")
 
     df = df.drop_duplicates()
+    if len(df) > MAX_TRAIN_ROWS:
+        df = df.sample(n=MAX_TRAIN_ROWS, random_state=42)
     x_frame = df.drop("diagnosis", axis=1).apply(pd.to_numeric, errors="coerce")
     x_frame = x_frame.fillna(x_frame.median(numeric_only=True))
     y = encode_diagnosis(df["diagnosis"])
@@ -187,6 +194,18 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "ml-service"}
+
+
+@app.on_event("startup")
+def ensure_models_trained():
+    if not BEST_MODEL_PATH.exists() or not METRICS_PATH.exists():
+        print("No trained models found. Auto-training on the bundled breast_cancer_40_features_1M.csv dataset...")
+        try:
+            result = train(TrainRequest())
+            print(f"Auto-training complete. Best model: {result['best_model']['model_name']} "
+                  f"(accuracy {result['best_model']['accuracy']:.4f})")
+        except Exception as exc:
+            print(f"Auto-training failed: {exc}. Call POST /train manually once the dataset is available.")
 
 
 @app.post("/train")

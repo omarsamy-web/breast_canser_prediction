@@ -63,6 +63,8 @@ function normalizeUser(row) {
     email: row.email,
     role: row.role,
     plan: row.plan || "free",
+    credits: row.credits ?? 0,
+    freePredictionUsed: row.free_prediction_used ?? false,
     created_at: row.created_at
   };
 }
@@ -73,8 +75,10 @@ function normalizeAuthUser(authUser, profile = null) {
     id: authUser.id,
     name: profile?.name || authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
     email: profile?.email || authUser.email,
-    role: profile?.role || authUser.user_metadata?.role || "Doctor",
+    role: profile?.role || authUser.user_metadata?.role || "Patient",
     plan: profile?.plan || "free",
+    credits: profile?.credits ?? 0,
+    freePredictionUsed: profile?.freePredictionUsed ?? false,
     created_at: profile?.created_at || authUser.created_at
   });
 }
@@ -117,7 +121,7 @@ export const supabaseStore = {
       return normalizeUser(row);
     },
     async findById(id) {
-      const row = await maybeSingle("app_users", { select: "*,plan", id: `eq.${encodeValue(id)}` });
+      const row = await maybeSingle("app_users", { select: "*,credits,free_prediction_used", id: `eq.${encodeValue(id)}` });
       return normalizeUser(row);
     },
     async create(payload) {

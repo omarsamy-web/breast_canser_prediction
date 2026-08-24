@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { FaClipboardCheck, FaFileMedical, FaFilePdf, FaPaperPlane, FaStethoscope } from "react-icons/fa";
-import { predict } from "../services/api.js";
+import { useEffect, useState } from "react";
+import { FaClipboardCheck, FaCreditCard, FaFileMedical, FaFilePdf, FaGift, FaPaperPlane, FaStethoscope } from "react-icons/fa";
+import { checkoutCredits, getCreditStatus, predict } from "../services/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { cancerFeatures } from "../utils/features.js";
 
 const baselineFeatures = {
@@ -88,11 +89,44 @@ function quickFormToFeatures(form) {
 }
 
 export default function Prediction() {
+  const { user, setUser } = useAuth();
+  const isStaff = user?.role === "Admin" || user?.role === "Doctor" || user?.role === "Researcher";
   const [mode, setMode] = useState("quick");
   const [quick, setQuick] = useState(quickInitial);
   const [values, setValues] = useState(Object.fromEntries(cancerFeatures.map((feature) => [feature, baselineFeatures[feature] ?? ""])));
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [credits, setCredits] = useState(null);
+  const [paywall, setPaywall] = useState(false);
+  const [buying, setBuying] = useState(null);
+
+  useEffect(() => {
+    getCreditStatus().then(setCredits).catch(() => {});
+  }, []);
+
+  async function buy(packId) {
+    setBuying(packId);
+    try {
+      const res = await checkoutCredits(packId);
+      setCredits((prev) => ({ ...prev, credits: res.credits }));
+      if (user) setUser({ ...user, credits: res.credits });
+      setPaywall(false);
+      setError("");
+    } catch (err) {
+      setError(err.response?.data?.message || "Checkout failed.");
+    } finally {
+      setBuying(null);
+    }
+  }
+
+  function handlePredictionError(err) {
+    if (err.response?.status === 402) {
+      setPaywall(true);
+      setError("");
+    } else {
+      setError(err.response?.data?.message || "The AI service is unavailable. Please try again later.");
+    }
+  }
 
   async function submitQuick(event) {
     event.preventDefault();
@@ -100,8 +134,9 @@ export default function Prediction() {
     try {
       const features = quickFormToFeatures(quick);
       setResult({ ...(await predict({ features })), source: "Quick risk check", quickScore: quickRiskScore(quick) });
+      getCreditStatus().then(setCredits).catch(() => {});
     } catch (err) {
-      setError(err.response?.data?.message || "Train a model first, then run prediction.");
+      handlePredictionError(err);
     }
   }
 
@@ -111,8 +146,9 @@ export default function Prediction() {
     try {
       const features = cancerFeatures.map((feature) => Number(values[feature] || 0));
       setResult({ ...(await predict({ features })), source: "Clinical feature form" });
+      getCreditStatus().then(setCredits).catch(() => {});
     } catch (err) {
-      setError(err.response?.data?.message || "Train a model first, then run prediction.");
+      handlePredictionError(err);
     }
   }
 
@@ -120,6 +156,52 @@ export default function Prediction() {
 
   return (
     <div className="page-grid">
+      {!isStaff && credits && (
+        <section className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 text-sm font-semibold ${
+          credits.freePredictionAvailable
+            ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+            : (credits.credits ?? 0) > 0
+              ? "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200"
+              : "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+        }`}>
+          <span className="flex items-center gap-2">
+            {credits.freePredictionAvailable ? (
+              <><FaGift /> You have your free prediction available — no payment needed.</>
+            ) : (credits.credits ?? 0) > 0 ? (
+              <><FaCreditCard /> You have {credits.credits} prediction credit{(credits.credits ?? 0) > 1 ? "s" : ""} remaining.</>
+            ) : (
+              <><FaCreditCard /> Your free prediction is used and you have no credits left.</>
+            )}
+          </span>
+          {!credits.freePredictionAvailable && (
+            <button type="button" onClick={() => setPaywall((v) => !v)} className="btn-primary px-4 py-2 text-xs">
+              Buy credits
+            </button>
+          )}
+        </section>
+      )}
+
+      {paywall && !isStaff && (
+        <section className="glass rounded-xl p-6">
+          <h3 className="text-lg font-bold">Choose a credit pack</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Payments are in preview — packs are granted instantly without charging a card.
+          </p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            {(credits?.packs || []).map((pack) => (
+              <div key={pack.id} className={`rounded-2xl border p-5 text-center ${pack.popular ? "border-medical-blue ring-2 ring-medical-blue" : "border-slate-200 dark:border-slate-700"}`}>
+                <p className="text-sm font-bold">{pack.label}</p>
+                <p className="mt-2 text-3xl font-extrabold">${pack.price}</p>
+                {pack.popular && <p className="mt-1 text-xs font-semibold text-medical-blue">Most popular</p>}
+                <button type="button" disabled={buying !== null} onClick={() => buy(pack.id)} className="btn-primary mt-4 w-full py-2.5 text-sm">
+                  {buying === pack.id ? "Processing…" : `Buy ${pack.credits} credit${pack.credits > 1 ? "s" : ""}`}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="glass rounded-xl p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

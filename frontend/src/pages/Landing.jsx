@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaBrain, FaChartLine, FaCheckCircle, FaDatabase, FaHeartbeat,
   FaLock, FaRobot, FaShieldAlt, FaStethoscope, FaUserMd, FaVials
 } from "react-icons/fa";
 import bahiaLogo from "../assets/bahia-ai-logo.jpg";
-import { getPublicPlans } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const features = [
@@ -54,12 +53,12 @@ const faqs = [
     a: "No. Bahia AI is a decision-support research tool. It does not diagnose cancer and must never replace professional medical evaluation, imaging, or biopsy."
   },
   {
-    q: "Can I use it for free?",
-    a: "Yes. The Free plan includes 20 predictions per month, 2 trainings and 1 dataset — forever, no card required."
+    q: "Can I try it for free?",
+    a: "Yes. Every new account gets one full AI risk prediction for free — no credit card required. After that, you buy credits only when you need them."
   },
   {
-    q: "How do upgrades work?",
-    a: "Pick Pro or Clinic when you outgrow the free limits. Billing is in preview, so you can switch plans instantly at no cost while we finalize payments."
+    q: "How do payments work?",
+    a: "Buy a credit pack when you need more predictions. Credits never expire and are consumed only on successful predictions. Payments are in preview, so packs are currently granted free of charge."
   },
   {
     q: "Who can see my data?",
@@ -82,12 +81,7 @@ function Disclaimer() {
 
 export default function Landing() {
   const { token } = useAuth();
-  const [plans, setPlans] = useState([]);
   const [openFaq, setOpenFaq] = useState(null);
-
-  useEffect(() => {
-    getPublicPlans().then(setPlans).catch(() => {});
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -167,55 +161,55 @@ export default function Landing() {
       </section>
 
       <section id="pricing" className="mx-auto max-w-6xl px-6 py-16">
-        <h2 className="text-center text-3xl font-bold">Simple, honest pricing</h2>
+        <h2 className="text-center text-3xl font-bold">Your first prediction is free</h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-slate-600 dark:text-slate-300">
-          Start free forever. Upgrade only when your screening volume grows.
-          Payments are in preview — plan switches are currently free.
+          Every patient account starts with one free AI risk assessment.
+          After that, buy credits only when you need them — no subscription required.
+          Payments are in preview, so credits are currently granted free of charge.
         </p>
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
-          {(plans.length ? plans : [
-            { id: "free", name: "Free", priceMonthly: 0, description: "Explore the platform.", features: [] },
-            { id: "pro", name: "Pro", priceMonthly: 29, description: "For active clinicians.", popular: true, features: [] },
-            { id: "clinic", name: "Clinic", priceMonthly: 99, description: "For teams & programs.", features: [] }
-          ]).map((plan) => (
+        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          {[
+            { label: "1 prediction", price: 9, popular: false },
+            { label: "5 predictions", price: 39, popular: true },
+            { label: "20 predictions", price: 129, popular: false }
+          ].map((pack) => (
             <div
-              key={plan.id}
+              key={pack.label}
               className={`relative flex flex-col rounded-2xl border p-7 shadow-sm ${
-                plan.popular
+                pack.popular
                   ? "border-medical-blue shadow-xl shadow-blue-500/10 ring-2 ring-medical-blue"
                   : "border-white/60 bg-white/80 dark:border-white/10 dark:bg-slate-900/70"
               }`}
             >
-              {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-medical-blue px-4 py-1 text-xs font-bold text-white">Most popular</span>
+              {pack.popular && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-medical-blue px-4 py-1 text-xs font-bold text-white">Best value</span>
               )}
-              <h3 className="font-bold">{plan.name}</h3>
-              <p className="mt-1 min-h-10 text-sm text-slate-500 dark:text-slate-400">{plan.description}</p>
+              <h3 className="font-bold">{pack.label}</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Credits never expire</p>
               <p className="mt-4">
-                <span className="text-4xl font-extrabold">${plan.priceMonthly}</span>
-                <span className="text-sm text-slate-500"> /month</span>
+                <span className="text-4xl font-extrabold">${pack.price}</span>
               </p>
               <ul className="mt-5 flex-1 space-y-2.5 text-sm">
-                {(plan.features?.length ? plan.features : ["Core ML training", "Predictions with confidence scores", "Prediction history"]).map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <FaCheckCircle className="mt-0.5 shrink-0 text-emerald-500" />
-                    <span>{f}</span>
-                  </li>
-                ))}
+                <li className="flex items-start gap-2"><FaCheckCircle className="mt-0.5 shrink-0 text-emerald-500" /> Full AI risk assessment</li>
+                <li className="flex items-start gap-2"><FaCheckCircle className="mt-0.5 shrink-0 text-emerald-500" /> Confidence score & recommendation</li>
+                <li className="flex items-start gap-2"><FaCheckCircle className="mt-0.5 shrink-0 text-emerald-500" /> Saved to your personal history</li>
               </ul>
               <Link
                 to={token ? "/app/billing" : "/register"}
                 className={`mt-6 rounded-xl px-5 py-3 text-center font-bold transition ${
-                  plan.popular
+                  pack.popular
                     ? "bg-medical-blue text-white shadow-lg shadow-blue-500/25 hover:brightness-110"
                     : "border border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
                 }`}
               >
-                {plan.priceMonthly === 0 ? "Start free" : `Choose ${plan.name}`}
+                {token ? "Go to billing" : "Start with a free prediction"}
               </Link>
             </div>
           ))}
         </div>
+        <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+          Running a clinic or research team? Contact us about unlimited clinical plans.
+        </p>
       </section>
 
       <section className="mx-auto max-w-3xl px-6 py-16">

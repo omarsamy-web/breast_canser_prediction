@@ -1,19 +1,28 @@
 import { NavLink } from "react-router-dom";
-import { FaChartPie, FaCreditCard, FaDatabase, FaHistory, FaMicroscope, FaShieldAlt, FaStethoscope, FaVials } from "react-icons/fa";
+import {
+  FaChartPie, FaChartBar, FaCreditCard, FaHistory,
+  FaMicroscope, FaShieldAlt, FaStethoscope
+} from "react-icons/fa";
 import bahiaLogo from "../../assets/bahia-ai-logo.jpg";
-import { useLanguage } from "../../context/LanguageContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function Sidebar() {
-  const { t } = useLanguage();
+  const { user } = useAuth();
+  const isStaff = user?.role === "Admin" || user?.role === "Doctor" || user?.role === "Researcher";
+
   const links = [
-    { to: "/app", label: t.nav.dashboard, icon: FaChartPie, end: true },
-    { to: "/app/datasets", label: t.nav.datasets, icon: FaDatabase },
-    { to: "/app/training", label: t.nav.training, icon: FaVials },
-    { to: "/app/prediction", label: t.nav.prediction, icon: FaStethoscope },
-    { to: "/app/evaluation", label: t.nav.evaluation, icon: FaMicroscope },
-    { to: "/app/history", label: t.nav.history, icon: FaHistory },
-    { to: "/app/billing", label: "Billing", icon: FaCreditCard },
-    { to: "/app/admin", label: t.nav.admin, icon: FaShieldAlt }
+    { to: "/app", label: "Dashboard", icon: FaChartPie, end: true },
+    ...(isStaff
+      ? [
+          { to: "/app/analysis", label: "Data Analysis", icon: FaChartBar },
+          { to: "/app/evaluation", label: "Model Evaluation", icon: FaMicroscope }
+        ]
+      : [
+          { to: "/app/prediction", label: "New Prediction", icon: FaStethoscope },
+          { to: "/app/history", label: "My History", icon: FaHistory },
+          { to: "/app/billing", label: "Credits & Billing", icon: FaCreditCard }
+        ]),
+    ...(isStaff ? [{ to: "/app/prediction", label: "Prediction", icon: FaStethoscope }, { to: "/app/admin", label: "Admin Panel", icon: FaShieldAlt }] : [])
   ];
 
   return (
@@ -22,13 +31,13 @@ export default function Sidebar() {
         <img src={bahiaLogo} alt="Bahia AI logo" className="h-12 w-12 rounded-xl object-cover shadow-lg shadow-pink-500/20" />
         <div>
           <p className="text-lg font-bold">Bahia AI</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{t.brandSubtitle}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{isStaff ? "Clinical console" : "Patient portal"}</p>
         </div>
       </div>
       <nav className="space-y-2">
         {links.map(({ to, label, icon: Icon, end }) => (
           <NavLink
-            key={to}
+            key={label}
             to={to}
             end={end}
             className={({ isActive }) =>
@@ -44,6 +53,11 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      {!isStaff && (
+        <div className="mt-8 rounded-xl bg-blue-50 p-4 text-xs leading-relaxed text-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+          Your first prediction is free. After that, predictions use paid credits — see Credits & Billing.
+        </div>
+      )}
     </aside>
   );
 }

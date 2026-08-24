@@ -20,7 +20,7 @@ export default function Dashboard() {
         <StatCard icon={FaHeartbeat} label="Total Predictions" value="500000" />
         <StatCard icon={FaPercent} label="Accuracy Score" value="	99.9%" tone="green" />
         <StatCard icon={FaBrain} label="Best Model" value="Decision Tree" tone="pink" />
-        <StatCard icon={FaDatabase} label="Uploaded Datasets" value="1" />
+        <StatCard icon={FaDatabase} label="Training Dataset" value="1M rows" tone="pink" />
         <StatCard icon={FaVial} label="Malignant Cases" value="175,000" tone="amber" />
         <StatCard icon={FaUserMd} label="Benign Cases" value="325,000" tone="green" />
       </div>

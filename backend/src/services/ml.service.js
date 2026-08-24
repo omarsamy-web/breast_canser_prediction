@@ -28,6 +28,11 @@ export async function getModels() {
   return data;
 }
 
+export async function analyzeBundledDataset() {
+  const { data } = await client.post("/dataset/analyze", {});
+  return data;
+}
+
 export async function analyzeDataset(filePath) {
   const datasetPath = filePath ? String(filePath) : null;
   if (!datasetPath) {

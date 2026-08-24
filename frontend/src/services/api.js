@@ -26,18 +26,15 @@ api.interceptors.response.use(
 
 export const loginUser = (payload) => api.post("/auth/login", payload).then((res) => res.data);
 export const registerUser = (payload) => api.post("/auth/register", payload).then((res) => res.data);
-export const uploadDataset = (file) => {
-  const form = new FormData();
-  form.append("file", file);
-  return api.post("/dataset/upload", form).then((res) => res.data);
-};
 export const getDatasets = () => api.get("/dataset").then((res) => res.data);
-export const trainModel = (payload) => api.post("/ml/train", payload).then((res) => res.data);
 export const predict = (payload) => api.post("/ml/predict", payload).then((res) => res.data);
 export const evaluate = () => api.get("/ml/evaluate").then((res) => res.data);
+export const analyzeDataset = () => api.get("/ml/analyze").then((res) => res.data);
 export const getHistory = () => api.get("/ml/history").then((res) => res.data);
 export const adminOverview = () => api.get("/admin/overview").then((res) => res.data);
 export const adminUsers = () => api.get("/admin/users").then((res) => res.data);
 export const getPublicPlans = () => api.get("/plans").then((res) => res.data.plans);
 export const getBilling = () => api.get("/billing").then((res) => res.data);
 export const changePlan = (plan) => api.post("/billing/plan", { plan }).then((res) => res.data);
+export const getCreditStatus = () => api.get("/credits").then((res) => res.data);
+export const checkoutCredits = (pack) => api.post("/checkout", { pack }).then((res) => res.data);

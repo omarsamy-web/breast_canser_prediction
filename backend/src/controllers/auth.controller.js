@@ -12,6 +12,18 @@ function sign(user) {
   });
 }
 
+export function publicUser(user) {
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    plan: user.plan || "free",
+    credits: user.credits ?? 0,
+    freePredictionUsed: Boolean(user.freePredictionUsed)
+  };
+}
+
 export async function register(req, res, next) {
   try {
     const payload = validate(registerSchema, req.body);
@@ -21,19 +33,28 @@ export async function register(req, res, next) {
         ? await supabaseStore.users.findByEmail(payload.email)
         : memory.users.findByEmail(payload.email);
     if (exists) return res.status(409).json({ message: "Email already registered" });
+
+    // The very first account on a fresh deployment becomes the Admin.
+    const userCount = hasDatabase()
+      ? await User.countDocuments()
+      : hasSupabase()
+        ? await supabaseStore.users.count()
+        : memory.users.count();
+    const role = userCount === 0 ? "Admin" : payload.role || "Patient";
+
     let user;
     if (hasSupabase()) {
-      user = await supabaseStore.users.create({ ...payload, email: payload.email.toLowerCase() });
+      user = await supabaseStore.users.create({ ...payload, role, email: payload.email.toLowerCase(), credits: 0, freePredictionUsed: false });
     } else {
       const password = await bcrypt.hash(payload.password, 12);
       user = hasDatabase()
-        ? await User.create({ ...payload, password })
-        : memory.users.create({ ...payload, email: payload.email.toLowerCase(), password });
+        ? await User.create({ ...payload, role, password })
+        : memory.users.create({ ...payload, role, email: payload.email.toLowerCase(), password, credits: 0, freePredictionUsed: false });
     }
-    res.status(201).json({ token: sign(user), user: { id: user._id, name: user.name, email: user.email, role: user.role, plan: user.plan || "free" } });
+    res.status(201).json({ token: sign(user), user: publicUser(user) });
   } catch (error) {
     next(error);
-  }
+ }
 }
 
 export async function login(req, res, next) {
@@ -48,7 +69,7 @@ export async function login(req, res, next) {
     if (!hasSupabase() && !(await bcrypt.compare(payload.password, user.password))) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-    res.json({ token: sign(user), user: { id: user._id, name: user.name, email: user.email, role: user.role, plan: user.plan || "free" } });
+    res.json({ token: sign(user), user: publicUser(user) });
   } catch (error) {
     if (hasSupabase() && error.response?.status === 400) {
       return res.status(401).json({ message: "Invalid credentials" });

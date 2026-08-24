@@ -1,8 +1,8 @@
 import ModelMetric from "../models/ModelMetric.js";
 import Prediction from "../models/Prediction.js";
 import { hasDatabase } from "../config/database.js";
-import { trackTraining } from "../middleware/plan.middleware.js";
-import { evaluateModels, getModels, predictDiagnosis, trainModel } from "../services/ml.service.js";
+import { settlePrediction } from "./payment.controller.js";
+import { analyzeBundledDataset, evaluateModels, getModels, predictDiagnosis, trainModel } from "../services/ml.service.js";
 import { memory } from "../services/memory.store.js";
 import { hasSupabase, supabaseStore } from "../services/supabase.store.js";
 import { predictSchema, trainSchema, validate } from "../utils/validators.js";
@@ -59,7 +59,6 @@ async function persistMetrics(metrics) {
 export async function train(req, res, next) {
   try {
     const payload = validate(trainSchema, req.body);
-    trackTraining(req.user._id);
     const result = await trainModel(payload);
     await persistMetrics(result);
     res.json(result);
@@ -84,6 +83,7 @@ export async function predict(req, res, next) {
     if (hasDatabase()) await Prediction.create(payloadToSave);
     else if (hasSupabase()) await supabaseStore.predictions.create(payloadToSave);
     else memory.predictions.create(payloadToSave);
+    await settlePrediction(req.user);
     res.json(result);
   } catch (error) {
     next(error);
@@ -101,6 +101,14 @@ export async function evaluate(_req, res, next) {
 export async function models(_req, res, next) {
   try {
     res.json(await getModels());
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function analyze(req, res, next) {
+  try {
+    res.json(await analyzeBundledDataset());
   } catch (error) {
     next(error);
   }
