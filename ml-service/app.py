@@ -230,7 +230,23 @@ def load_bundle(model_name: Optional[str] = None):
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "ml-service", "version": "4.0.0", "ready": BEST_MODEL_PATH.exists()}
+    candidates = [
+        PROJECT_DIR / "breast_cancer_40_features_1M.csv",
+        BASE_DIR / "breast_cancer_40_features_1M.csv",
+        BASE_DIR / "datasets" / "breast_cancer_40_features_1M.csv",
+        BASE_DIR / "datasets" / "breast_cancer_edited.csv",
+        BASE_DIR / "breast_cancer_edited.csv",
+        PROJECT_DIR / "breast_cancer_edited.csv",
+    ]
+    found = [str(p) for p in candidates if p.exists()]
+    return {
+        "status": "ok",
+        "service": "ml-service",
+        "version": "4.1.0",
+        "ready": BEST_MODEL_PATH.exists(),
+        "datasets_available": found,
+        "workdir": str(BASE_DIR),
+    }
 
 
 @app.get("/health")

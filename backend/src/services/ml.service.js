@@ -21,6 +21,18 @@ function normalizeMlError(error, action) {
     wrapped.code = "ML_UNREACHABLE";
     return wrapped;
   }
+  if (error.response) {
+    // The ML service answered with an HTTP error — surface its real
+    // status and detail instead of masking it as a generic 500.
+    const detail = error.response.data?.detail || error.response.data?.message;
+    const wrapped = new Error(
+      typeof detail === "string"
+        ? `ML service (${action}): ${detail}`
+        : `ML service (${action}) request failed with status ${error.response.status}`
+    );
+    wrapped.status = error.response.status >= 400 && error.response.status < 500 ? error.response.status : 502;
+    return wrapped;
+  }
   if (error.response?.status === 404 && action === "evaluate") {
     const wrapped = new Error("Models are not trained yet. The ML service auto-trains on first start — check its deploy logs.");
     wrapped.status = 503;
