@@ -2,7 +2,7 @@ import ModelMetric from "../models/ModelMetric.js";
 import Prediction from "../models/Prediction.js";
 import { hasDatabase } from "../config/database.js";
 import { settlePrediction } from "./payment.controller.js";
-import { analyzeBundledDataset, evaluateModels, getModels, predictDiagnosis, trainModel } from "../services/ml.service.js";
+import { analyzeBundledDataset, evaluateModels, getModels, mlServiceStatus, predictDiagnosis, trainModel } from "../services/ml.service.js";
 import { memory } from "../services/memory.store.js";
 import { hasSupabase, supabaseStore } from "../services/supabase.store.js";
 import { predictSchema, trainSchema, validate } from "../utils/validators.js";
@@ -109,6 +109,14 @@ export async function models(_req, res, next) {
 export async function analyze(req, res, next) {
   try {
     res.json(await analyzeBundledDataset());
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function status(_req, res, next) {
+  try {
+    res.json(await mlServiceStatus());
   } catch (error) {
     next(error);
   }

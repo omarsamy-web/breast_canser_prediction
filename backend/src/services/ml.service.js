@@ -8,29 +8,62 @@ const client = axios.create({
   timeout: 600000
 });
 
+function normalizeMlError(error, action) {
+  const unreachable = ["ECONNREFUSED", "ENOTFOUND", "ECONNABORTED", "ETIMEDOUT"].includes(error.code) ||
+    ["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT"].includes(error.cause?.code || "");
+  if (unreachable) {
+    const wrapped = new Error(
+      `ML service is unreachable (${process.env.ML_SERVICE_URL || "http://localhost:8000"}). ` +
+      "Verify the ML service is deployed and ML_SERVICE_URL points to its URL."
+    );
+    wrapped.status = 503;
+    wrapped.code = "ML_UNREACHABLE";
+    return wrapped;
+  }
+  if (error.response?.status === 404 && action === "evaluate") {
+    const wrapped = new Error("Models are not trained yet. The ML service auto-trains on first start — check its deploy logs.");
+    wrapped.status = 503;
+    return wrapped;
+  }
+  return error;
+}
+
+async function mlCall(action, request) {
+  try {
+    return await request();
+  } catch (error) {
+    throw normalizeMlError(error, action);
+  }
+}
+
 export async function trainModel(payload) {
-  const { data } = await client.post("/train", payload);
-  return data;
+  return mlCall("train", () => client.post("/train", payload)).then((r) => r.data);
 }
 
 export async function predictDiagnosis(payload) {
-  const { data } = await client.post("/predict", payload);
-  return data;
+  return mlCall("predict", () => client.post("/predict", payload)).then((r) => r.data);
 }
 
 export async function evaluateModels() {
-  const { data } = await client.get("/evaluate");
-  return data;
+  return mlCall("evaluate", () => client.get("/evaluate")).then((r) => r.data);
 }
 
 export async function getModels() {
-  const { data } = await client.get("/models");
-  return data;
+  return mlCall("models", () => client.get("/models")).then((r) => r.data);
 }
 
 export async function analyzeBundledDataset() {
-  const { data } = await client.post("/dataset/analyze", {});
-  return data;
+  return mlCall("analyze", () => client.post("/dataset/analyze", {})).then((r) => r.data);
+}
+
+export async function mlServiceStatus() {
+  const configuredUrl = process.env.ML_SERVICE_URL || "http://localhost:8000";
+  try {
+    const { data } = await client.get("/", { timeout: 5000 });
+    return { reachable: true, url: configuredUrl, ready: Boolean(data?.ready), version: data?.version };
+  } catch (error) {
+    return { reachable: false, url: configuredUrl, error: error.code || error.message };
+  }
 }
 
 export async function analyzeDataset(filePath) {

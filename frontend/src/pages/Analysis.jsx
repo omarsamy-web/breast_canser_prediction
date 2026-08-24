@@ -10,11 +10,22 @@ export default function Analysis() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    analyzeDataset().then(setData).catch(() => setError("Could not load dataset analysis. Make sure the ML service is running."));
+    analyzeDataset().then(setData).catch((err) => {
+      setError(err.response?.data?.message || "Could not load dataset analysis.");
+    });
   }, []);
 
   if (error) {
-    return <section className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100">{error}</section>;
+    return (
+      <section className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100">
+        <p className="font-semibold">{error}</p>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-xs leading-relaxed">
+          <li>Check that the ML service is deployed and healthy on Railway.</li>
+          <li>On the backend service, set <code className="rounded bg-rose-100 px-1 dark:bg-rose-900">ML_SERVICE_URL</code> to the ML service's public URL.</li>
+          <li>Admins can visit <code className="rounded bg-rose-100 px-1 dark:bg-rose-900">/api/ml/status</code> to see the configured URL and whether the service is reachable.</li>
+        </ul>
+      </section>
+    );
   }
 
   if (!data) {
