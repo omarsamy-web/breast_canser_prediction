@@ -8,7 +8,7 @@ export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const { t } = useLanguage();
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "", role: "Patient" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "", role: "Patient", consent: false });
   const [error, setError] = useState("");
 
   async function submit(event) {
@@ -16,7 +16,13 @@ export default function Register() {
     if (form.password !== form.confirm) return setError("Passwords do not match");
     setError("");
     try {
-      await register({ name: form.name, email: form.email, password: form.password, role: form.role });
+      await register({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        consentAccepted: form.consent
+      });
       navigate("/app");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
@@ -40,6 +46,10 @@ export default function Register() {
         )}
         <input className="input" placeholder={t.auth.password} type="password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         <input className="input" placeholder={t.auth.confirm} type="password" required minLength={8} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
+        <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+          <input type="checkbox" required checked={form.consent} onChange={(e) => setForm({ ...form, consent: e.target.checked })} className="mt-0.5" />
+          I understand this tool provides statistical estimates, <strong>not a medical diagnosis</strong>, and I accept the terms of service and privacy policy. I consent to my prediction history being stored to provide the service.
+        </label>
         {error && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-950/40">{error}</p>}
         <button className="btn-primary w-full" type="submit">{t.auth.register}</button>
       </form>

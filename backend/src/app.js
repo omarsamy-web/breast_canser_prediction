@@ -15,7 +15,12 @@ const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:5173")
   .filter(Boolean);
 
 function isAllowedOrigin(origin) {
-  return Boolean(origin && (allowedOrigins.includes(origin) || allowedOrigins.includes("*")));
+  return Boolean(origin && allowedOrigins.includes(origin));
+}
+
+const allowAllOrigins = allowedOrigins.includes("*");
+if (allowAllOrigins) {
+  console.warn("CORS: FRONTEND_ORIGIN=* — credentialed requests will be rejected; set explicit origins.");
 }
 
 app.use(helmet());

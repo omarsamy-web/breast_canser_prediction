@@ -1,13 +1,16 @@
 {
   "name": "breast-cancer-ai-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "test": "node --test test/",
+    "smoke": "node scripts/smoke-test.mjs http://localhost:4000",
     "lint": "eslint ."
   },
   "dependencies": {
+    "@sentry/node": "^10.70.0",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

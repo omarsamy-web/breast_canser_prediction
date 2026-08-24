@@ -1,7 +1,8 @@
 import axios from "axios";
 
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000/api"
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000/api",
+  timeout: 45000
 });
 
 api.interceptors.request.use((config) => {
@@ -12,8 +13,19 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const { config: req, response } = error;
+
+    // Retry idempotent GET requests twice on network errors / 5xx / timeouts.
+    const retryable = !response || response.status >= 500 || error.code === "ECONNABORTED";
+    const isGet = (req?.method || "get").toLowerCase() === "get";
+    if (retryable && isGet && req && (req.__retries || 0) < 2) {
+      req.__retries = (req.__retries || 0) + 1;
+      await new Promise((resolve) => setTimeout(resolve, 800 * req.__retries));
+      return api.request(req);
+    }
+
+    if (response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       if (window.location.pathname !== "/login") {
@@ -24,8 +36,13 @@ api.interceptors.response.use(
   }
 );
 
+function toMessage(error, fallback) {
+  return error?.response?.data?.message || (error?.code === "ECONNABORTED" ? "The server took too long to respond. Please try again." : fallback);
+}
+
 export const loginUser = (payload) => api.post("/auth/login", payload).then((res) => res.data);
-export const registerUser = (payload) => api.post("/auth/register", payload).then((res) => res.data);
+export const registerUser = (payload) =>
+  api.post("/auth/register", payload).then((res) => res.data).catch((e) => Promise.reject(new Error(toMessage(e, "Registration failed"))));
 export const getDatasets = () => api.get("/dataset").then((res) => res.data);
 export const predict = (payload) => api.post("/ml/predict", payload).then((res) => res.data);
 export const evaluate = () => api.get("/ml/evaluate").then((res) => res.data);

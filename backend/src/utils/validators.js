@@ -1,10 +1,13 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
-  role: z.enum(["Admin", "Patient"]).default("Patient")
+  name: z.string().min(2).max(120),
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(200),
+  role: z.enum(["Admin", "Patient"]).default("Patient"),
+  consentAccepted: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the terms and medical disclaimer to create an account" })
+  })
 });
 
 export const loginSchema = z.object({

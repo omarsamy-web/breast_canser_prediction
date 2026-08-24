@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import ChartCard from "../components/charts/ChartCard.jsx";
 import { evaluate } from "../services/api.js";
 
@@ -43,11 +43,19 @@ export default function Evaluation() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="ROC Curve">
-          <ResponsiveContainer><LineChart data={[{ x: 0, y: 0 }, { x: 0.1, y: 0.72 }, { x: 0.25, y: 0.91 }, { x: 1, y: 1 }]}><XAxis dataKey="x" /><YAxis /><Tooltip /><Line dataKey="y" stroke="#2563eb" strokeWidth={3} /></LineChart></ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Precision-Recall Curve">
-          <ResponsiveContainer><LineChart data={[{ r: 0, p: 1 }, { r: 0.4, p: 0.98 }, { r: 0.8, p: 0.94 }, { r: 1, p: 0.87 }]}><XAxis dataKey="r" /><YAxis /><Tooltip /><Line dataKey="p" stroke="#ec4899" strokeWidth={3} /></LineChart></ResponsiveContainer>
+        <ChartCard title="Model Metrics (best model)">
+          <ResponsiveContainer>
+            <BarChart data={[
+              { metric: "Accuracy", value: data?.best_model?.accuracy ?? 0 },
+              { metric: "Precision", value: data?.best_model?.precision ?? 0 },
+              { metric: "Recall", value: data?.best_model?.recall ?? 0 },
+              { metric: "F1", value: data?.best_model?.f1_score ?? 0 },
+              { metric: "ROC-AUC", value: data?.best_model?.roc_auc ?? 0 }
+            ]}>
+              <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="metric" /><YAxis domain={[0, 1]} /><Tooltip />
+              <Bar dataKey="value" fill="#2563eb" />
+            </BarChart>
+          </ResponsiveContainer>
         </ChartCard>
       </div>
       <section className="glass rounded-xl p-5">
