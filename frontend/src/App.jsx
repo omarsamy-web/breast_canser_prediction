@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout.jsx";
+import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -8,6 +9,7 @@ import ModelTraining from "./pages/ModelTraining.jsx";
 import Prediction from "./pages/Prediction.jsx";
 import Evaluation from "./pages/Evaluation.jsx";
 import History from "./pages/History.jsx";
+import Billing from "./pages/Billing.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
@@ -19,10 +21,11 @@ function Protected({ children }) {
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route
-        path="/"
+        path="/app"
         element={
           <Protected>
             <AppLayout />
@@ -35,8 +38,10 @@ export default function App() {
         <Route path="prediction" element={<Prediction />} />
         <Route path="evaluation" element={<Evaluation />} />
         <Route path="history" element={<History />} />
+        <Route path="billing" element={<Billing />} />
         <Route path="admin" element={<AdminPanel />} />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

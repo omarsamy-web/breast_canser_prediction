@@ -41,7 +41,13 @@ const authPublicClient = url && (anonKey || serviceRoleKey)
   : null;
 
 export function hasSupabase() {
-  return Boolean(client && authAdminClient);
+  const isConfigured =
+    url &&
+    !url.includes("your-supabase-") &&
+    serviceRoleKey &&
+    serviceRoleKey !== "your-supabase-service-role-key" &&
+    !serviceRoleKey.includes("placeholder");
+  return Boolean(isConfigured && client && authAdminClient);
 }
 
 function encodeValue(value) {
@@ -56,6 +62,7 @@ function normalizeUser(row) {
     name: row.name,
     email: row.email,
     role: row.role,
+    plan: row.plan || "free",
     created_at: row.created_at
   };
 }
@@ -67,6 +74,7 @@ function normalizeAuthUser(authUser, profile = null) {
     name: profile?.name || authUser.user_metadata?.name || authUser.email?.split("@")[0] || "User",
     email: profile?.email || authUser.email,
     role: profile?.role || authUser.user_metadata?.role || "Doctor",
+    plan: profile?.plan || "free",
     created_at: profile?.created_at || authUser.created_at
   });
 }
@@ -109,7 +117,7 @@ export const supabaseStore = {
       return normalizeUser(row);
     },
     async findById(id) {
-      const row = await maybeSingle("app_users", { select: "*", id: `eq.${encodeValue(id)}` });
+      const row = await maybeSingle("app_users", { select: "*,plan", id: `eq.${encodeValue(id)}` });
       return normalizeUser(row);
     },
     async create(payload) {
@@ -141,11 +149,15 @@ export const supabaseStore = {
       return normalizeAuthUser(authUser, profile);
     },
     async list() {
-      const rows = await list("app_users", { select: "id,name,email,role,created_at", order: "created_at.desc" });
+      const rows = await list("app_users", { select: "id,name,email,role,plan,created_at", order: "created_at.desc" });
       return rows.map(normalizeUser);
     },
     async count() {
       return count("app_users");
+    },
+    async update(id, payload) {
+      await client.patch("/app_users", payload, { params: { id: `eq.${encodeValue(id)}` } });
+      return this.findById(id);
     }
   },
   datasets: {

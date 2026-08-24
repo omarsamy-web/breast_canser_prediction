@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.js";
 import datasetRoutes from "./routes/dataset.routes.js";
 import mlRoutes from "./routes/ml.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import billingRoutes from "./routes/billing.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -56,6 +57,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/dataset", datasetRoutes);
 app.use("/api/ml", mlRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api", billingRoutes);
 app.use(errorHandler);
 
 export default app;

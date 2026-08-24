@@ -52,12 +52,27 @@ npm run dev
 
 ## Workflow
 
-1. Register or log in.
-2. Upload a breast cancer CSV dataset.
-3. Train one or more models: KNN, SVM, Decision Tree, Random Forest.
-4. Compare metrics and automatically select the strongest model by `F1 + accuracy`.
-5. Predict diagnoses from the medical feature form.
-6. Review dashboards, history, reports, datasets, and model metrics.
+1. Visit the public landing page (`/`) — features, pricing, FAQ, and medical disclaimer.
+2. Register or log in (redirects to `/app`).
+3. Upload a breast cancer CSV dataset.
+4. Train one or more models: KNN, SVM, Decision Tree, Random Forest.
+5. Compare metrics and automatically select the strongest model by `F1 + accuracy`.
+6. Predict diagnoses from the medical feature form.
+7. Review dashboards, history, reports, datasets, and model metrics.
+8. Manage your subscription on `/app/billing` (usage bars + plan switching).
+
+## SaaS Plans & Quotas
+
+| Plan | Price | Predictions/mo | Trainings/mo | Datasets |
+|------|-------|----------------|--------------|----------|
+| Free | $0    | 20             | 2            | 1        |
+| Pro  | $29   | 1,000          | 50           | 10       |
+| Clinic | $99 | 20,000         | 500          | 100      |
+
+- Plan catalog lives in `backend/src/config/plans.js`.
+- Quotas are enforced server-side in `backend/src/middleware/plan.middleware.js` — exceeding a limit returns HTTP `402` with `code: "QUOTA_EXCEEDED"`.
+- Billing endpoints: `GET /api/plans` (public), `GET /api/billing`, `POST /api/billing/plan` (auth required).
+- Payments are in preview: `POST /api/billing/plan` switches plans directly. When going live, replace it with Stripe Checkout + webhook (see the integration point marked in `billing.controller.js`).
 
 ## Dataset
 

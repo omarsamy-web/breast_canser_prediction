@@ -1,6 +1,7 @@
 import ModelMetric from "../models/ModelMetric.js";
 import Prediction from "../models/Prediction.js";
 import { hasDatabase } from "../config/database.js";
+import { trackTraining } from "../middleware/plan.middleware.js";
 import { evaluateModels, getModels, predictDiagnosis, trainModel } from "../services/ml.service.js";
 import { memory } from "../services/memory.store.js";
 import { hasSupabase, supabaseStore } from "../services/supabase.store.js";
@@ -58,6 +59,7 @@ async function persistMetrics(metrics) {
 export async function train(req, res, next) {
   try {
     const payload = validate(trainSchema, req.body);
+    trackTraining(req.user._id);
     const result = await trainModel(payload);
     await persistMetrics(result);
     res.json(result);

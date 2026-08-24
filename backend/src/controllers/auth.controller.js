@@ -30,7 +30,7 @@ export async function register(req, res, next) {
         ? await User.create({ ...payload, password })
         : memory.users.create({ ...payload, email: payload.email.toLowerCase(), password });
     }
-    res.status(201).json({ token: sign(user), user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.status(201).json({ token: sign(user), user: { id: user._id, name: user.name, email: user.email, role: user.role, plan: user.plan || "free" } });
   } catch (error) {
     next(error);
   }
@@ -48,7 +48,7 @@ export async function login(req, res, next) {
     if (!hasSupabase() && !(await bcrypt.compare(payload.password, user.password))) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-    res.json({ token: sign(user), user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.json({ token: sign(user), user: { id: user._id, name: user.name, email: user.email, role: user.role, plan: user.plan || "free" } });
   } catch (error) {
     if (hasSupabase() && error.response?.status === 400) {
       return res.status(401).json({ message: "Invalid credentials" });

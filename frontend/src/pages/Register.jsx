@@ -17,7 +17,7 @@ export default function Register() {
     setError("");
     try {
       await register({ name: form.name, email: form.email, password: form.password, role: form.role });
-      navigate("/");
+      navigate("/app");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     }
