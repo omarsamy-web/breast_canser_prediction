@@ -46,6 +46,7 @@ export const registerUser = (payload) =>
 export const predict = (payload) => api.post("/ml/predict", payload).then((res) => res.data);
 export const evaluate = () => api.get("/ml/evaluate").then((res) => res.data);
 export const analyzeDataset = () => api.get("/ml/analyze").then((res) => res.data);
+export const getMlStatus = () => api.get("/ml/status").then((res) => res.data);
 export const getHistory = () => api.get("/ml/history").then((res) => res.data);
 export const adminOverview = () => api.get("/admin/overview").then((res) => res.data);
 export const adminUsers = () => api.get("/admin/users").then((res) => res.data);
