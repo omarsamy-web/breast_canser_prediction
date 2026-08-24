@@ -16,7 +16,7 @@ export default function History() {
         <h2 className="mb-4 text-xl font-bold">Previous Predictions</h2>
         <table className="w-full text-left text-sm">
           <thead className="text-slate-500"><tr><th className="p-3">Date</th><th>Model</th><th>Diagnosis</th><th>Confidence</th></tr></thead>
-          <tbody>{history.predictions.map((row) => <tr className="border-t border-slate-200 dark:border-slate-800" key={row._id}><td className="p-3">{new Date(row.created_at).toLocaleString()}</td><td>{row.model}</td><td>{row.result}</td><td>{Math.round(row.confidence * 100)}%</td></tr>)}</tbody>
+          <tbody>{history.predictions.map((row) => <tr className="border-t border-slate-200 dark:border-slate-800" key={row._id}><td className="p-3">{new Date(row.created_at).toLocaleString()}</td><td>{row.model}</td><td>{row.result}</td><td>{row.confidence != null ? `${Math.round(row.confidence * 100)}%` : "—"}</td></tr>)}</tbody>
         </table>
       </section>
       <section className="glass rounded-xl p-5">

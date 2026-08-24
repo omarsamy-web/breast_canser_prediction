@@ -5,12 +5,21 @@ import { evaluate } from "../services/api.js";
 
 export default function Evaluation() {
   const [data, setData] = useState(null);
-  useEffect(() => { evaluate().then(setData).catch(() => setData(null)); }, []);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    evaluate().then(setData).catch(() => setError("Could not load model evaluation. Make sure the ML service is running and has trained models."));
+  }, []);
   const rows = data?.results || [];
   const best = data?.best_model?.model_name;
   const matrix = data?.best_model?.confusion_matrix || [[0, 0], [0, 0]];
   const featureData = data?.best_model?.feature_importance || [];
 
+  if (error) {
+    return <section className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100">{error}</section>;
+  }
+  if (!data) {
+    return <p className="text-sm text-slate-500">Loading model evaluation…</p>;
+  }
   return (
     <div className="page-grid">
       <div className="grid gap-4 md:grid-cols-5">
@@ -45,7 +54,7 @@ export default function Evaluation() {
         <h3 className="mb-4 font-bold">Model Comparison</h3>
         <table className="w-full text-left text-sm">
           <thead className="text-slate-500"><tr><th className="p-3">Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead>
-          <tbody>{rows.map((row) => <tr key={row.model_name} className={`border-t border-slate-200 dark:border-slate-800 ${row.model_name === best ? "bg-blue-50/80 dark:bg-blue-950/30" : ""}`}><td className="p-3 font-bold">{row.model_name}</td><td>{row.accuracy.toFixed(3)}</td><td>{row.precision.toFixed(3)}</td><td>{row.recall.toFixed(3)}</td><td>{row.f1_score.toFixed(3)}</td></tr>)}</tbody>
+          <tbody>{rows.map((row) => <tr key={row.model_name} className={`border-t border-slate-200 dark:border-slate-800 ${row.model_name === best ? "bg-blue-50/80 dark:bg-blue-950/30" : ""}`}><td className="p-3 font-bold">{row.model_name}</td><td>{row.accuracy?.toFixed(3)}</td><td>{row.precision?.toFixed(3)}</td><td>{row.recall?.toFixed(3)}</td><td>{row.f1_score?.toFixed(3)}</td></tr>)}</tbody>
         </table>
       </section>
     </div>

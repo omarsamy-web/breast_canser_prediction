@@ -13,11 +13,12 @@ function sign(user) {
 }
 
 export function publicUser(user) {
+  const role = user.role === "Doctor" || user.role === "Researcher" ? "Admin" : user.role;
   return {
     id: user._id,
     name: user.name,
     email: user.email,
-    role: user.role,
+    role,
     plan: user.plan || "free",
     credits: user.credits ?? 0
   };

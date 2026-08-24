@@ -18,6 +18,16 @@ export async function authenticate(req, res, next) {
         : memory.users.findById(payload.id);
     if (!user) return res.status(401).json({ message: "Invalid token" });
 
+    // Legacy accounts predate the Admin/Patient split — treat them as Admin.
+    if (user.role === "Doctor" || user.role === "Researcher") {
+      user.role = "Admin";
+      if (hasDatabase()) {
+        await User.findByIdAndUpdate(user._id, { role: "Admin" }).catch(() => {});
+      } else if (hasSupabase()) {
+        await supabaseStore.users.update(user._id, { role: "Admin" }).catch(() => {});
+      }
+    }
+
     req.user = user;
     next();
   } catch {

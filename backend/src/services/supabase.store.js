@@ -56,12 +56,13 @@ function encodeValue(value) {
 
 function normalizeUser(row) {
   if (!row) return null;
+  const legacyRole = row.role === "Doctor" || row.role === "Researcher";
   return {
     _id: row.id,
     id: row.id,
     name: row.name,
     email: row.email,
-    role: row.role,
+    role: legacyRole ? "Admin" : row.role,
     plan: row.plan || "free",
     credits: row.credits ?? 0,
     freePredictionUsed: row.free_prediction_used ?? false,

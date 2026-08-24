@@ -1,65 +1,126 @@
-import { Cell, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, Pie, PieChart, Radar, RadarChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { FaBrain, FaDatabase, FaHeartbeat, FaPercent, FaUserMd, FaVial } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  FaChartPie, FaCheckCircle, FaCreditCard, FaHeartbeat,
+  FaHistory, FaStethoscope
+} from "react-icons/fa";
 import StatCard from "../components/ui/StatCard.jsx";
-import ChartCard from "../components/charts/ChartCard.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { getCreditStatus, getHistory } from "../services/api.js";
 
-const modelData = [
-  { name: "KNN", accuracy: 0.94, f1: 0.93 },
-  { name: "SVM", accuracy: 0.96, f1: 0.95 },
-  { name: "Decision Tree", accuracy: 0.92, f1: 0.91 },
-  { name: "Random Forest", accuracy: 0.98, f1: 0.97 }
-];
-const diagnosis = [{ name: "Benign", value: 63 }, { name: "Malignant", value: 37 }];
-const history = modelData.map((item, index) => ({ run: `Run ${index + 1}`, accuracy: item.accuracy * 100 }));
-const radar = [{ metric: "Accuracy", value: 98 }, { metric: "Precision", value: 97 }, { metric: "Recall", value: 96 }, { metric: "F1", value: 97 }, { metric: "ROC", value: 99 }];
+function PatientDashboard() {
+  const { user } = useAuth();
+  const [credits, setCredits] = useState(null);
+  const [history, setHistory] = useState(null);
 
-export default function Dashboard() {
+  useEffect(() => {
+    getCreditStatus().then(setCredits).catch(() => {});
+    getHistory().then(setHistory).catch(() => {});
+  }, []);
+
+  const predictions = history?.predictions || [];
+  const lastResult = predictions[0]?.result;
+
   return (
     <div className="page-grid">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        <StatCard icon={FaHeartbeat} label="Total Predictions" value="500000" />
-        <StatCard icon={FaPercent} label="Accuracy Score" value="	99.9%" tone="green" />
-        <StatCard icon={FaBrain} label="Best Model" value="Decision Tree" tone="pink" />
-        <StatCard icon={FaDatabase} label="Training Dataset" value="1M rows" tone="pink" />
-        <StatCard icon={FaVial} label="Malignant Cases" value="175,000" tone="amber" />
-        <StatCard icon={FaUserMd} label="Benign Cases" value="325,000" tone="green" />
+      <header>
+        <h2 className="text-xl font-bold">Welcome, {user?.name}</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Your personal screening portal. Your illness history is free forever — predictions use credits.
+        </p>
+      </header>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={FaCreditCard} label="Credits Left" value={credits?.credits ?? user?.credits ?? 0} tone="pink" />
+        <StatCard icon={FaHeartbeat} label="Total Predictions" value={predictions.length} />
+        <StatCard icon={FaStethoscope} label="Last Result" value={lastResult || "—"} tone="amber" />
+        <StatCard icon={FaCheckCircle} label="Account Role" value="Patient" tone="green" />
       </div>
-      <div className="grid gap-5 xl:grid-cols-2">
-        <ChartCard title="Diagnosis Distribution">
-          <ResponsiveContainer>
-            <PieChart>
-              <Pie data={diagnosis} dataKey="value" nameKey="name" outerRadius={100}>
-                <Cell fill="#10b981" /><Cell fill="#f43f5e" />
-              </Pie>
-              <Tooltip /><Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Model Comparison">
-          <ResponsiveContainer>
-            <BarChart data={modelData}>
-              <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend />
-              <Bar dataKey="accuracy" fill="#2563eb" /><Bar dataKey="f1" fill="#ec4899" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Training History">
-          <ResponsiveContainer>
-            <LineChart data={history}>
-              <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="run" /><YAxis /><Tooltip />
-              <Line type="monotone" dataKey="accuracy" stroke="#06b6d4" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Metrics Radar">
-          <ResponsiveContainer>
-            <RadarChart data={radar}>
-              <PolarGrid /><PolarAngleAxis dataKey="metric" /><PolarRadiusAxis />
-              <Radar dataKey="value" fill="#ec4899" fillOpacity={0.35} stroke="#ec4899" />
-            </RadarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Link to="/app/prediction" className="glass rounded-xl p-6 transition hover:shadow-lg">
+          <FaStethoscope className="text-2xl text-medical-blue" />
+          <h3 className="mt-3 font-bold">New Prediction</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Run an AI-assisted breast cancer risk check.</p>
+        </Link>
+        <Link to="/app/history" className="glass rounded-xl p-6 transition hover:shadow-lg">
+          <FaHistory className="text-2xl text-pink-500" />
+          <h3 className="mt-3 font-bold">My History</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Review every past assessment — always free.</p>
+        </Link>
+        <Link to="/app/billing" className="glass rounded-xl p-6 transition hover:shadow-lg">
+          <FaCreditCard className="text-2xl text-emerald-500" />
+          <h3 className="mt-3 font-bold">Credits & Billing</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{(credits?.credits ?? 0) > 0 ? `${credits.credits} credits available.` : "Buy credits to predict."}</p>
+        </Link>
+      </div>
+
+      <section className="glass rounded-xl p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="flex items-center gap-2 font-bold"><FaChartPie className="text-medical-blue" /> Recent activity</h3>
+          <Link to="/app/history" className="text-sm font-semibold text-medical-blue">View all</Link>
+        </div>
+        {predictions.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            No predictions yet. Run your first AI risk check from the New Prediction page.
+          </p>
+        ) : (
+          <table className="w-full text-left text-sm">
+            <thead className="text-slate-500"><tr><th className="p-2">Date</th><th>Model</th><th>Result</th><th>Confidence</th></tr></thead>
+            <tbody>
+              {predictions.slice(0, 5).map((row) => (
+                <tr key={row._id} className="border-t border-slate-200 dark:border-slate-800">
+                  <td className="p-2">{new Date(row.created_at).toLocaleString()}</td>
+                  <td>{row.model}</td>
+                  <td className={row.result === "Malignant" ? "font-semibold text-rose-500" : "font-semibold text-emerald-600"}>{row.result}</td>
+                  <td>{row.confidence != null ? `${Math.round(row.confidence * 100)}%` : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function AdminDashboard() {
+  return (
+    <div className="page-grid">
+      <header>
+        <h2 className="text-xl font-bold">Clinical Console</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Dataset analysis, model evaluation and unlimited predictions.
+        </p>
+      </header>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Link to="/app/analysis" className="glass rounded-xl p-6 transition hover:shadow-lg">
+          <FaChartPie className="text-2xl text-medical-blue" />
+          <h3 className="mt-3 font-bold">Data Analysis</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Explore the bundled 1M-row dataset.</p>
+        </Link>
+        <Link to="/app/evaluation" className="glass rounded-xl p-6 transition hover:shadow-lg">
+          <FaCheckCircle className="text-2xl text-emerald-500" />
+          <h3 className="mt-3 font-bold">Model Evaluation</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Compare KNN, SVM, Decision Tree & Random Forest.</p>
+        </Link>
+        <Link to="/app/prediction" className="glass rounded-xl p-6 transition hover:shadow-lg">
+          <FaStethoscope className="text-2xl text-pink-500" />
+          <h3 className="mt-3 font-bold">Prediction</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Run assessments with clinical features.</p>
+        </Link>
+        <Link to="/app/admin" className="glass rounded-xl p-6 transition hover:shadow-lg">
+          <FaHistory className="text-2xl text-amber-500" />
+          <h3 className="mt-3 font-bold">Admin Panel</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Users, usage and platform health.</p>
+        </Link>
       </div>
     </div>
   );
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const isStaff = user?.role === "Admin" || user?.role === "Doctor" || user?.role === "Researcher";
+  return isStaff ? <AdminDashboard /> : <PatientDashboard />;
 }
