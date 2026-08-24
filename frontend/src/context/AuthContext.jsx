@@ -30,6 +30,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
   }
 
+  function updateUser(patch) {
+    setUser((current) => {
+      const next = typeof patch === "function" ? patch(current) : { ...current, ...patch };
+      localStorage.setItem("user", JSON.stringify(next));
+      return next;
+    });
+  }
+
   useEffect(() => {
     function handleExpired() {
       logout();
@@ -40,7 +48,7 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener("auth-expired", handleExpired);
   }, []);
 
-  const value = useMemo(() => ({ token, user, login, register, logout }), [token, user]);
+  const value = useMemo(() => ({ token, user, login, register, logout, updateUser }), [token, user]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

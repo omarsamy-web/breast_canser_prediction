@@ -163,6 +163,15 @@ export const supabaseStore = {
     async update(id, payload) {
       await client.patch("/app_users", payload, { params: { id: `eq.${encodeValue(id)}` } });
       return this.findById(id);
+    },
+    // Atomic, race-safe credit operations (SQL functions in migrations).
+    async decrementCreditsGuarded(id) {
+      await client.post("/rpc/decrement_credits", { p_user_id: id });
+      return true;
+    },
+    async incrementCredits(id, amount = 1) {
+      await client.post("/rpc/increment_credits", { p_user_id: id, p_amount: amount });
+      return true;
     }
   },
   datasets: {

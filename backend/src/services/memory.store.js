@@ -7,10 +7,6 @@ const state = {
   metrics: []
 };
 
-export function usingMemoryStore() {
-  return true;
-}
-
 export function newId() {
   return crypto.randomUUID();
 }

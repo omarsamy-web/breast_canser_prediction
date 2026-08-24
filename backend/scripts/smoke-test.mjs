@@ -38,15 +38,21 @@ function check(name, condition, extra = "") {
 const health = await call("GET", "/api/health");
 check("health endpoint", health.status === 200);
 
+// First account on a fresh database is auto-bootstrapped as Admin.
 const admin = await call("POST", "/api/auth/register", {
-  body: { name: `QA Admin ${stamp}`, email: `qa-admin-${stamp}@test.com`, password: "password123", role: "Admin", consentAccepted: true }
+  body: { name: `QA Admin ${stamp}`, email: `qa-admin-${stamp}@test.com`, password: "password123", consentAccepted: true }
 });
-check("admin registration", admin.status === 201 && admin.json.user?.role === "Admin", `status=${admin.status}`);
+check("first account bootstrapped as admin", admin.status === 201 && admin.json.user?.role === "Admin", `status=${admin.status}`);
 
 const patient = await call("POST", "/api/auth/register", {
   body: { name: `QA Patient ${stamp}`, email: `qa-patient-${stamp}@test.com`, password: "password123", role: "Patient", consentAccepted: true }
 });
 check("patient registration", patient.status === 201 && patient.json.user?.role === "Patient", `status=${patient.status}`);
+
+const adminSelfReg = await call("POST", "/api/auth/register", {
+  body: { name: `Evil ${stamp}`, email: `qa-evil-${stamp}@test.com`, password: "password123", role: "Admin", consentAccepted: true }
+});
+check("admin self-registration rejected", adminSelfReg.status === 400, `status=${adminSelfReg.status}`);
 
 if (!patient.json.token || !admin.json.token) {
   console.error("Cannot continue without tokens.");

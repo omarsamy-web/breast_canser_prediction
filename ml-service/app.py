@@ -8,6 +8,10 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+# Optional shared-secret: when ML_ACCESS_TOKEN is set, every request must
+# present it in the X-ML-Token header. The Node backend sends it automatically.
+ML_ACCESS_TOKEN = os.environ.get("ML_ACCESS_TOKEN", "")
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
@@ -33,19 +37,29 @@ BEST_MODEL_PATH = SAVED_MODELS_DIR / "best_model.joblib"
 METRICS_PATH = METRICS_DIR / "metrics.joblib"
 
 # Cap training rows so the 1M-row dataset trains in minutes, not hours.
-MAX_TRAIN_ROWS = int(os.environ.get("MAX_TRAIN_ROWS", "100000"))
+MAX_TRAIN_ROWS = int(os.environ.get("MAX_TRAIN_ROWS") or os.environ.get("MAX_TRAINING_ROWS") or "100000")
 
 for directory in [SAVED_MODELS_DIR, METRICS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
-app = FastAPI(title="Breast Cancer Notebook ML Service", version="4.0.0")
+app = FastAPI(title="Breast Cancer Notebook ML Service", version="4.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def token_guard(request, call_next):
+    # Health checks stay public for platform probes; every other route
+    # requires the shared secret when ML_ACCESS_TOKEN is configured.
+    if ML_ACCESS_TOKEN and request.url.path not in ("/", "/health"):
+        if request.headers.get("x-ml-token") != ML_ACCESS_TOKEN:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=401, content={"detail": "Invalid or missing X-ML-Token"})
+    return await call_next(request)
 
 
 class TrainRequest(BaseModel):
@@ -65,13 +79,16 @@ class AnalyzeRequest(BaseModel):
 
 def resolve_dataset(path: Optional[str]) -> Path:
     if path:
-        dataset_path = Path(path)
-        if not dataset_path.is_absolute():
-            if (BASE_DIR / dataset_path).exists():
-                return BASE_DIR / dataset_path
-            if (PROJECT_DIR / dataset_path).exists():
-                return PROJECT_DIR / dataset_path
-            dataset_path = PROJECT_DIR / dataset_path
+        # Security: never allow absolute paths or traversal outside the project.
+        raw = Path(path)
+        if raw.is_absolute() or ".." in raw.parts:
+            raise HTTPException(status_code=400, detail="Invalid dataset path")
+        dataset_path = raw
+        if (BASE_DIR / dataset_path).exists():
+            return BASE_DIR / dataset_path
+        if (PROJECT_DIR / dataset_path).exists():
+            return PROJECT_DIR / dataset_path
+        dataset_path = PROJECT_DIR / dataset_path
         if dataset_path.exists():
             return dataset_path
 
@@ -109,16 +126,35 @@ def load_training_data(path: Optional[str]):
     if len(df) > MAX_TRAIN_ROWS:
         df = df.sample(n=MAX_TRAIN_ROWS, random_state=42)
     x_frame = df.drop("diagnosis", axis=1).apply(pd.to_numeric, errors="coerce")
+    # Drop columns that are entirely non-numeric (median imputation impossible).
+    x_frame = x_frame.dropna(axis=1, how="all")
+    if x_frame.shape[1] == 0:
+        raise HTTPException(status_code=400, detail="No usable numeric feature columns found in the dataset")
     x_frame = x_frame.fillna(x_frame.median(numeric_only=True))
+    if x_frame.isna().to_numpy().any():
+        raise HTTPException(status_code=400, detail="Dataset contains columns with too many missing values")
     y = encode_diagnosis(df["diagnosis"])
 
     feature_names = list(x_frame.columns)
-    x_train, x_test, y_train, y_test = train_test_split(
-        x_frame.to_numpy(),
-        y,
-        test_size=0.3,
-        random_state=42,
-    )
+    stratify = None
+    try:
+        counts = pd.Series(y).value_counts()
+        if (counts >= 2).all() and len(counts) > 1:
+            stratify = y
+    except Exception:
+        stratify = None
+    try:
+        x_train, x_test, y_train, y_test = train_test_split(
+            x_frame.to_numpy(),
+            y,
+            test_size=0.3,
+            random_state=42,
+            stratify=stratify,
+        )
+    except ValueError:
+        x_train, x_test, y_train, y_test = train_test_split(
+            x_frame.to_numpy(), y, test_size=0.3, random_state=42
+        )
 
     scaler = StandardScaler()
     x_train = scaler.fit_transform(x_train)
@@ -183,7 +219,13 @@ def load_bundle(model_name: Optional[str] = None):
     path = SAVED_MODELS_DIR / f"{model_name}.joblib" if model_name else BEST_MODEL_PATH
     if not path.exists():
         raise HTTPException(status_code=404, detail="No trained model found. Train models first.")
-    return joblib.load(path)
+    try:
+        bundle = joblib.load(path)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Model artifact is unreadable: {exc}")
+    if not isinstance(bundle, dict) or not all(key in bundle for key in ("model", "scaler", "features")):
+        raise HTTPException(status_code=503, detail="Model artifacts are outdated or corrupted. Retrain via POST /train.")
+    return bundle
 
 
 @app.get("/")
@@ -198,14 +240,21 @@ def health():
 
 @app.on_event("startup")
 def ensure_models_trained():
+    # Train in a background thread so /health answers immediately and
+    # platform health checks never time out during a cold start.
     if not BEST_MODEL_PATH.exists() or not METRICS_PATH.exists():
-        print("No trained models found. Auto-training on the bundled breast_cancer_40_features_1M.csv dataset...")
-        try:
-            result = train(TrainRequest())
-            print(f"Auto-training complete. Best model: {result['best_model']['model_name']} "
-                  f"(accuracy {result['best_model']['accuracy']:.4f})")
-        except Exception as exc:
-            print(f"Auto-training failed: {exc}. Call POST /train manually once the dataset is available.")
+        import threading
+
+        def _train_background():
+            print("No trained models found. Auto-training on the bundled dataset in background...")
+            try:
+                result = train(TrainRequest())
+                print(f"Auto-training complete. Best model: {result['best_model']['model_name']} "
+                      f"(accuracy {result['best_model']['accuracy']:.4f})")
+            except Exception as exc:
+                print(f"Auto-training failed: {exc}. Call POST /train manually once the dataset is available.")
+
+        threading.Thread(target=_train_background, daemon=True).start()
 
 
 @app.post("/train")
@@ -214,23 +263,28 @@ def train(payload: TrainRequest):
     results = []
     trained = {}
 
-    for name, model in notebook_models().items():
+    candidates = notebook_models()
+    requested = (payload.algorithm or "all").lower()
+    if requested != "all":
+        if requested not in candidates:
+            raise HTTPException(status_code=400, detail=f"Unknown algorithm '{requested}'. Choose from: {', '.join(candidates)}")
+        candidates = {requested: candidates[requested]}
+
+    for name, model in candidates.items():
         model.fit(x_train, y_train)
         metrics = evaluate_model(name, model, x_test, y_test, feature_names)
         save_bundle(name, model, scaler, feature_names, metrics)
         trained[name] = metrics
         results.append(metrics)
 
-    knn_acc = trained["knn"]["accuracy"]
-    dt_acc = trained["decision_tree"]["accuracy"]
-    rf_acc = trained["random_forest"]["accuracy"]
-    svm_acc = trained["svm"]["accuracy"]
+    knn_acc = trained.get("knn", {}).get("accuracy")
+    dt_acc = trained.get("decision_tree", {}).get("accuracy")
+    rf_acc = trained.get("random_forest", {}).get("accuracy")
+    svm_acc = trained.get("svm", {}).get("accuracy")
 
     print("\n===== MODEL COMPARISON =====")
-    print("KNN Accuracy:", knn_acc)
-    print("Decision Tree Accuracy:", dt_acc)
-    print("Random Forest Accuracy:", rf_acc)
-    print("SVM Accuracy:", svm_acc)
+    for name, metrics in trained.items():
+        print(f"{name} Accuracy:", metrics["accuracy"])
 
     best_model = max(results, key=lambda item: item["accuracy"])
     best_bundle = joblib.load(SAVED_MODELS_DIR / f"{best_model['model_name']}.joblib")
@@ -265,7 +319,7 @@ def predict(payload: PredictRequest):
     confidence = probability if diagnosis == "Malignant" else 1 - probability
 
     return {
-        "model": bundle["metrics"]["model_name"],
+        "model": (bundle.get("metrics") or {}).get("model_name") or payload.model or "best_model",
         "diagnosis": diagnosis,
         "confidence": round(confidence, 4),
         "risk_percentage": round(probability * 100, 2),

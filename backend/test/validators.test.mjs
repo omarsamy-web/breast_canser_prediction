@@ -10,9 +10,8 @@ describe("registerSchema", () => {
     assert.equal(data.role, "Patient");
   });
 
-  it("accepts an explicit Admin role", () => {
-    const data = validate(registerSchema, { ...base, role: "Admin" });
-    assert.equal(data.role, "Admin");
+  it("rejects admin self-registration (admins are bootstrapped only)", () => {
+    assert.throws(() => validate(registerSchema, { ...base, role: "Admin" }));
   });
 
   it("rejects legacy or invalid roles", () => {

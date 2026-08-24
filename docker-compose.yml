@@ -12,12 +12,15 @@ services:
     working_dir: /app
     command: sh -c "pip install -r requirements.txt && uvicorn app:app --host 0.0.0.0 --port 5000"
     environment:
-      - MAX_TRAINING_ROWS=120000
+      - MAX_TRAIN_ROWS=120000
+      # Optional shared secret between backend and ML service.
+      - ML_ACCESS_TOKEN=${ML_ACCESS_TOKEN:-}
     volumes:
       - ./ml-service:/app
       - ./breast_cancer_40_features_1M.csv:/breast_cancer_40_features_1M.csv:ro
-    ports:
-      - "5000:5000"
+    # Not published to the host: only backend talks to it over the compose network.
+    expose:
+      - "5000"
 
   backend:
     image: node:22-alpine
@@ -26,9 +29,12 @@ services:
     environment:
       - PORT=4000
       - MONGODB_URI=mongodb://mongo:27017/breast_cancer_ai
-      - JWT_SECRET=replace-with-a-long-random-secret
+      - NODE_ENV=development
+      # Required: generate with `node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"`
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in your shell or .env file}
       - FRONTEND_ORIGIN=http://localhost:5173
       - ML_SERVICE_URL=http://ml-service:5000
+      - ML_ACCESS_TOKEN=${ML_ACCESS_TOKEN:-}
     volumes:
       - ./backend:/app
     ports:

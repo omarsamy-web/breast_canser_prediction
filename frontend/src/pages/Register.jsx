@@ -25,7 +25,7 @@ export default function Register() {
       });
       navigate("/app");
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
+      setError(err.response?.data?.message || err.message || "Registration failed");
     }
   }
 
@@ -34,16 +34,13 @@ export default function Register() {
       <form onSubmit={submit} className="space-y-4">
         <input className="input" placeholder={t.auth.name} required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <input className="input" placeholder={t.auth.email} type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+        <select className="input" value="Patient" disabled aria-label="Account type">
           <option value="Patient">Patient — my history & paid predictions</option>
-          <option value="Admin">Admin — data analysis & management</option>
         </select>
-        {form.role === "Patient" && (
-          <p className="text-xs text-slate-500 dark:text-slate-400">Your illness history is free forever. Predictions require credits.</p>
-        )}
-        {form.role === "Admin" && (
-          <p className="text-xs text-slate-500 dark:text-slate-400">Admins get dataset analysis, model evaluation and unlimited predictions.</p>
-        )}
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Registering as a patient: your illness history is free forever, predictions use credits.
+          Clinics get admin access during onboarding — contact us.
+        </p>
         <input className="input" placeholder={t.auth.password} type="password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         <input className="input" placeholder={t.auth.confirm} type="password" required minLength={8} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
         <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">

@@ -89,7 +89,7 @@ function quickFormToFeatures(form) {
 }
 
 export default function Prediction() {
-  const { user, setUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const isStaff = user?.role === "Admin" || user?.role === "Doctor" || user?.role === "Researcher";
   const [mode, setMode] = useState("quick");
   const [quick, setQuick] = useState(quickInitial);
@@ -109,7 +109,7 @@ export default function Prediction() {
     try {
       const res = await checkoutCredits(packId);
       setCredits((prev) => ({ ...prev, credits: res.credits }));
-      if (user) setUser({ ...user, credits: res.credits });
+      if (user) updateUser({ credits: res.credits });
       setPaywall(false);
       setError("");
     } catch (err) {

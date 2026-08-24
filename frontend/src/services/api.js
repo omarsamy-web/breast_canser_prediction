@@ -43,7 +43,6 @@ function toMessage(error, fallback) {
 export const loginUser = (payload) => api.post("/auth/login", payload).then((res) => res.data);
 export const registerUser = (payload) =>
   api.post("/auth/register", payload).then((res) => res.data).catch((e) => Promise.reject(new Error(toMessage(e, "Registration failed"))));
-export const getDatasets = () => api.get("/dataset").then((res) => res.data);
 export const predict = (payload) => api.post("/ml/predict", payload).then((res) => res.data);
 export const evaluate = () => api.get("/ml/evaluate").then((res) => res.data);
 export const analyzeDataset = () => api.get("/ml/analyze").then((res) => res.data);

@@ -70,7 +70,17 @@ export async function train(req, res, next) {
 export async function predict(req, res, next) {
   try {
     const payload = validate(predictSchema, req.body);
-    const result = await predictDiagnosis(payload);
+
+    // Credit was already reserved by enforcePredictionAccess.
+    // If inference fails, refund it so users never pay for failed predictions.
+    let result;
+    try {
+      result = await predictDiagnosis(payload);
+    } catch (mlError) {
+      await settlePrediction(req.user, true);
+      throw mlError;
+    }
+
     const payloadToSave = {
       user_id: req.user._id,
       model: result.model,
@@ -80,11 +90,19 @@ export async function predict(req, res, next) {
       features: payload.features,
       recommendation: result.recommendation
     };
-    if (hasDatabase()) await Prediction.create(payloadToSave);
-    else if (hasSupabase()) await supabaseStore.predictions.create(payloadToSave);
-    else memory.predictions.create(payloadToSave);
-    await settlePrediction(req.user);
-    res.json(result);
+
+    // Bookkeeping must not turn a successful prediction into a client error.
+    let warning;
+    try {
+      if (hasDatabase()) await Prediction.create(payloadToSave);
+      else if (hasSupabase()) await supabaseStore.predictions.create(payloadToSave);
+      else memory.predictions.create(payloadToSave);
+    } catch (persistError) {
+      warning = "history_save_failed";
+      console.error("Prediction persisted to ML but history save failed:", persistError.message);
+    }
+
+    res.json({ ...result, ...(warning ? { warning } : {}) });
   } catch (error) {
     next(error);
   }

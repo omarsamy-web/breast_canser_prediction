@@ -11,7 +11,7 @@ router.post("/predict", enforcePredictionAccess(), predict);
 router.get("/analyze", authorize("Admin"), analyze);
 router.get("/status", authorize("Admin"), status);
 router.get("/evaluate", evaluate);
-router.get("/models", models);
+router.get("/models", authorize("Admin"), models);
 router.get("/history", history);
 
 export default router;

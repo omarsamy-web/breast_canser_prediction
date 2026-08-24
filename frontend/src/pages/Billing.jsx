@@ -4,7 +4,7 @@ import { changePlan, checkoutCredits, getBilling, getCreditStatus } from "../ser
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Billing() {
-  const { user, setUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const isStaff = user?.role === "Admin" || user?.role === "Doctor" || user?.role === "Researcher";
   const [credits, setCredits] = useState(null);
   const [billing, setBilling] = useState(null);
@@ -23,7 +23,7 @@ export default function Billing() {
       const res = await checkoutCredits(packId);
       const status = await getCreditStatus();
       setCredits(status);
-      setUser({ ...user, credits: res.credits });
+      updateUser({ credits: res.credits });
       setMessage({ type: "success", text: res.message });
     } catch (error) {
       setMessage({ type: "error", text: error.response?.data?.message || "Checkout failed." });
@@ -36,10 +36,12 @@ export default function Billing() {
     setBusy(planId);
     setMessage(null);
     try {
-      await changePlan(planId);
-      setMessage({ type: "success", text: `Plan switched to ${planId}.` });
+      const res = await changePlan(planId);
+      if (res.user) updateUser({ plan: res.user.plan });
+      setBilling(await getBilling());
+      setMessage({ type: "success", text: `Plan switched to ${res.user?.plan ?? planId}.` });
     } catch (error) {
-      setMessage({ type: "error", text: error.response?.data?.message || "Plan switch failed." });
+      setMessage({ type: "error", text: error.response?.data?.message || error.message || "Plan switch failed." });
     } finally {
       setBusy(null);
     }

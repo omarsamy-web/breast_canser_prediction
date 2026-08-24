@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { CREDIT_PACKS, enforcePredictionAccess, isStaff } from "../src/controllers/payment.controller.js";
 import { getPlan, publicPlans, DEFAULT_PLAN } from "../src/config/plans.js";
+import { memory } from "../src/services/memory.store.js";
 
 function mockRes() {
   const res = { statusCode: 200, body: null };
@@ -63,17 +64,26 @@ describe("enforcePredictionAccess", () => {
     assert.equal(res.body.code, "PAYMENT_REQUIRED");
   });
 
-  it("allows patients holding credits", async () => {
-    const req = { user: { role: "Patient", credits: 3 } };
+  it("allows patients holding credits and reserves atomically", async () => {
+    const stored = memory.users.create({
+      name: "Credit Patient",
+      email: "credits@test.local",
+      password: "x",
+      role: "Patient",
+      credits: 2,
+      freePredictionUsed: true
+    });
+    const req = { user: { _id: stored._id, role: "Patient", credits: 2 } };
     let called = false;
     await middleware(req, mockRes(), () => { called = true; });
     assert.equal(called, true);
-    assert.equal(req.predictionBilling.type, "credit");
+    // One credit was reserved by the middleware itself.
+    assert.equal(memory.users.findById(stored._id).credits, 1);
   });
 
   it("blocks patients with missing credit fields entirely", async () => {
     const res = mockRes();
-    await middleware({ user: { role: "Patient" } }, res, () => assert.fail("should not pass"));
+    await middleware({ user: { _id: "no-such-user", role: "Patient" } }, res, () => assert.fail("should not pass"));
     assert.equal(res.statusCode, 402);
   });
 });

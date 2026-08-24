@@ -11,7 +11,7 @@ const features = [
   {
     icon: FaBrain,
     title: "Four ML models",
-    text: "KNN, SVM, Decision Tree and Random Forest are trained and benchmarked automatically — the best model by F1 + accuracy is selected for you."
+    text: "KNN, SVM, Decision Tree and Random Forest are trained and benchmarked automatically — the most accurate model is selected for you."
   },
   {
     icon: FaChartLine,
@@ -25,8 +25,8 @@ const features = [
   },
   {
     icon: FaDatabase,
-    title: "Your data, your control",
-    text: "Upload your own CSV datasets. Datasets, models and prediction history stay isolated to your account."
+    title: "Curated clinical data",
+    text: "Models are trained on a curated 1M-row breast cancer dataset maintained by our team — no setup required on your side."
   },
   {
     icon: FaLock,
@@ -42,8 +42,8 @@ const features = [
 
 const steps = [
   { title: "Create your account", text: "Sign up as a patient or admin in under a minute — no credit card required." },
-  { title: "Upload a dataset", text: "Bring your own CSV or start with the bundled breast cancer dataset." },
-  { title: "Train & compare models", text: "One click trains all four models and ranks them by real metrics." },
+  { title: "Create your account", text: "Patients get a free illness history; admins get the clinical console." },
+  { title: "Predict in seconds", text: "The best-performing model assesses risk with a confidence score." },
   { title: "Predict & decide", text: "Get AI-assisted assessments with confidence scores to support clinical judgment." }
 ];
 
@@ -115,7 +115,7 @@ export default function Landing() {
           AI-powered insight for <span className="bg-gradient-to-r from-pink-500 to-medical-blue bg-clip-text text-transparent">earlier clarity</span> in breast cancer screening
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
-          Train four machine-learning models on your data, compare them with transparent metrics, and get
+          Four machine-learning models trained on curated clinical data, compared them with transparent metrics, and get
           instant AI-assisted risk assessments — built for clinicians, researchers and health teams.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">

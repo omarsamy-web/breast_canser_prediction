@@ -16,9 +16,10 @@ export default function History() {
 
   const filtered = useMemo(() => {
     return (history.predictions || []).filter((row) => {
+      const when = new Date(row.created_at);
       if (filters.model !== "all" && row.model !== filters.model) return false;
       if (filters.result !== "all" && row.result !== filters.result) return false;
-      if (filters.date && new Date(row.created_at).toISOString().slice(0, 10) !== filters.date) return false;
+      if (filters.date && (!Number.isNaN(when.getTime()) && when.toISOString().slice(0, 10)) !== filters.date) return false;
       return true;
     });
   }, [history.predictions, filters]);

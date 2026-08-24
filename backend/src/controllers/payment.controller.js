@@ -34,6 +34,45 @@ async function setUserFields(userId, fields) {
 }
 
 /**
+ * Atomically reserve one credit BEFORE running inference.
+ * Returns true when a credit was taken; false when the patient has none.
+ * The guarded conditional update makes concurrent requests safe:
+ * two parallel predictions with one credit left -> exactly one succeeds here.
+ */
+export async function reserveCredit(userId) {
+  if (hasDatabase()) {
+    const updated = await User.findOneAndUpdate(
+      { _id: userId, credits: { $gte: 1 } },
+      { $inc: { credits: -1 } },
+      { new: true }
+    );
+    return Boolean(updated);
+  }
+  if (hasSupabase()) {
+    const rows = await supabaseStore.decrementCreditsGuarded(userId);
+    return Boolean(rows);
+  }
+  const user = memory.users.findById(userId);
+  if (!user || (user.credits ?? 0) < 1) return false;
+  user.credits -= 1;
+  return true;
+}
+
+/** Give a reserved credit back (used when inference or persistence fails). */
+export async function refundCredit(userId) {
+  if (hasDatabase()) {
+    await User.findByIdAndUpdate(userId, { $inc: { credits: 1 } });
+    return;
+  }
+  if (hasSupabase()) {
+    await supabaseStore.incrementCredits(userId);
+    return;
+  }
+  const user = memory.users.findById(userId);
+  if (user) user.credits = (user.credits ?? 0) + 1;
+}
+
+/**
  * Staff (Admin) can predict freely. Patients must hold paid credits —
  * their illness history stays free, but every prediction consumes one credit.
  */
@@ -44,26 +83,33 @@ export function enforcePredictionAccess() {
         req.predictionBilling = { type: "staff" };
         return next();
       }
-      const credits = req.user.credits ?? 0;
-      if (credits > 0) {
-        req.predictionBilling = { type: "credit" };
-        return next();
+      // Atomically reserve a credit up front; refunded if the prediction fails.
+      const reserved = await reserveCredit(req.user._id);
+      if (!reserved) {
+        return res.status(402).json({
+          message: "Predictions require credits. Buy a credit pack to continue.",
+          code: "PAYMENT_REQUIRED",
+          checkoutUrl: "/app/billing"
+        });
       }
-      return res.status(402).json({
-        message: "Predictions require credits. Buy a credit pack to continue.",
-        code: "PAYMENT_REQUIRED",
-        checkoutUrl: "/app/billing"
-      });
+      req.predictionBilling = { type: "credit", reserved: true };
+      next();
     } catch (error) {
       next(error);
     }
   };
 }
 
-/** Call after a prediction succeeds so failures are never charged. */
-export async function settlePrediction(user) {
-  if (isStaff(user)) return;
-  await setUserFields(user._id, { credits: Math.max(0, (user.credits ?? 0) - 1) });
+/**
+ * Called after inference completes. The credit was already reserved before
+ * the ML call, so nothing is charged here; on failure we refund so users are
+ * never charged for predictions that did not happen.
+ */
+export async function settlePrediction(user, failed = false) {
+  if (isStaff(user) || failed) {
+    if (failed && !isStaff(user)) await refundCredit(user._id).catch((e) => console.error("credit refund failed:", e.message));
+    return;
+  }
 }
 
 export async function creditStatus(req, res, next) {
@@ -88,13 +134,26 @@ export async function checkout(req, res, next) {
     // Stripe integration point:
     // When payments go live, create a Checkout Session here and grant the
     // credits in the checkout.session.completed webhook instead.
-    const updated = await setUserFields(req.user._id, {
-      credits: (req.user.credits ?? 0) + pack.credits
-    });
+    let updated;
+    if (hasDatabase()) {
+      updated = await User.findByIdAndUpdate(
+        req.user._id,
+        { $inc: { credits: pack.credits } },
+        { new: true }
+      ).select("-password");
+    } else if (hasSupabase()) {
+      await supabaseStore.incrementCredits(req.user._id, pack.credits);
+      updated = await supabaseStore.users.findById(req.user._id);
+    } else {
+      const user = memory.users.findById(req.user._id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      user.credits = (user.credits ?? 0) + pack.credits;
+      updated = user;
+    }
 
     res.json({
       message: `Payment received (preview mode — no card charged). ${pack.credits} credit${pack.credits > 1 ? "s" : ""} added.`,
-      credits: updated.credits,
+      credits: updated.credits ?? 0,
       paid: pack.price
     });
   } catch (error) {
