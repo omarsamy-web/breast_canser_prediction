@@ -7,12 +7,7 @@
 **/dist/
 **/uploads/*
 !**/uploads/.gitkeep
-ml-service/saved_models/*
-!ml-service/saved_models/.gitkeep
-ml-service/models/*
-!ml-service/models/.gitkeep
-*.joblib
+# The 1M-row dataset is too large for git (370MB) - provided locally only.
+breast_cancer_40_features_1M.csv
 *.log
 *.zip
-breast_cancer_40_features_1M.csv
-breast_cancer_edited.csv
