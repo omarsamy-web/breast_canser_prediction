@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaClipboardCheck, FaCreditCard, FaFileMedical, FaFilePdf, FaGift, FaPaperPlane, FaStethoscope } from "react-icons/fa";
+import { FaClipboardCheck, FaCreditCard, FaFileMedical, FaFilePdf, FaPaperPlane, FaStethoscope } from "react-icons/fa";
 import { checkoutCredits, getCreditStatus, predict } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { cancerFeatures } from "../utils/features.js";
@@ -158,26 +158,20 @@ export default function Prediction() {
     <div className="page-grid">
       {!isStaff && credits && (
         <section className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 text-sm font-semibold ${
-          credits.freePredictionAvailable
-            ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
-            : (credits.credits ?? 0) > 0
-              ? "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200"
-              : "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+          (credits.credits ?? 0) > 0
+            ? "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200"
+            : "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
         }`}>
           <span className="flex items-center gap-2">
-            {credits.freePredictionAvailable ? (
-              <><FaGift /> You have your free prediction available — no payment needed.</>
-            ) : (credits.credits ?? 0) > 0 ? (
+            {(credits.credits ?? 0) > 0 ? (
               <><FaCreditCard /> You have {credits.credits} prediction credit{(credits.credits ?? 0) > 1 ? "s" : ""} remaining.</>
             ) : (
-              <><FaCreditCard /> Your free prediction is used and you have no credits left.</>
+              <><FaCreditCard /> You need credits to run a prediction. Your history stays free forever.</>
             )}
           </span>
-          {!credits.freePredictionAvailable && (
-            <button type="button" onClick={() => setPaywall((v) => !v)} className="btn-primary px-4 py-2 text-xs">
-              Buy credits
-            </button>
-          )}
+          <button type="button" onClick={() => setPaywall((v) => !v)} className="btn-primary px-4 py-2 text-xs">
+            {(credits.credits ?? 0) > 0 ? "Buy more" : "Buy credits"}
+          </button>
         </section>
       )}
 

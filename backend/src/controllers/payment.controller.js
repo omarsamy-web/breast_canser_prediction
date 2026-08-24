@@ -34,8 +34,8 @@ async function setUserFields(userId, fields) {
 }
 
 /**
- * Patients get exactly one free prediction; afterwards each prediction
- * consumes a paid credit. Staff (Admin) are never blocked.
+ * Staff (Admin) can predict freely. Patients must hold paid credits —
+ * their illness history stays free, but every prediction consumes one credit.
  */
 export function enforcePredictionAccess() {
   return async (req, res, next) => {
@@ -44,18 +44,13 @@ export function enforcePredictionAccess() {
         req.predictionBilling = { type: "staff" };
         return next();
       }
-      const used = req.user.freePredictionUsed ?? false;
-      if (!used) {
-        req.predictionBilling = { type: "free_trial" };
-        return next();
-      }
       const credits = req.user.credits ?? 0;
       if (credits > 0) {
         req.predictionBilling = { type: "credit" };
         return next();
       }
       return res.status(402).json({
-        message: "Your free prediction has been used. Buy credits to predict again.",
+        message: "Predictions require credits. Buy a credit pack to continue.",
         code: "PAYMENT_REQUIRED",
         checkoutUrl: "/app/billing"
       });
@@ -68,22 +63,15 @@ export function enforcePredictionAccess() {
 /** Call after a prediction succeeds so failures are never charged. */
 export async function settlePrediction(user) {
   if (isStaff(user)) return;
-  if (!user.freePredictionUsed) {
-    await setUserFields(user._id, { freePredictionUsed: true });
-  } else {
-    await setUserFields(user._id, { credits: Math.max(0, (user.credits ?? 0) - 1) });
-  }
+  await setUserFields(user._id, { credits: Math.max(0, (user.credits ?? 0) - 1) });
 }
 
 export async function creditStatus(req, res, next) {
   try {
     const staff = isStaff(req.user);
-    const used = staff ? false : Boolean(req.user.freePredictionUsed);
     res.json({
       role: req.user.role,
       isStaff: staff,
-      freePredictionAvailable: !staff && !used,
-      freePredictionUsed: used,
       credits: staff ? null : req.user.credits ?? 0,
       packs: CREDIT_PACKS
     });

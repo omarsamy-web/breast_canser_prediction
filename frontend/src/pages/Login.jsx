@@ -37,6 +37,7 @@ export default function Login() {
       <p className="mt-6 text-sm text-slate-500">
         {t.auth.newHere} <Link className="font-semibold text-medical-blue" to="/register">{t.auth.createAccount}</Link>
       </p>
+      <p className="mt-2 text-xs text-slate-400">Admins and patients sign in here — you'll see the dashboard for your role.</p>
     </AuthShell>
   );
 }

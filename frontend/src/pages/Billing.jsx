@@ -70,25 +70,19 @@ export default function Billing() {
         <>
           <section className="rounded-2xl border border-white/60 bg-white/80 p-6 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
             <h2 className="mb-4 flex items-center gap-2 font-bold"><FaCreditCard className="text-medical-blue" /> Your prediction balance</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-800/60">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Free prediction</p>
-                <p className={`mt-1 text-2xl font-extrabold ${credits?.freePredictionAvailable ? "text-emerald-500" : "text-slate-400 line-through"}`}>
-                  {credits?.freePredictionAvailable ? "Available" : "Used"}
-                </p>
-              </div>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-800/60">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Paid credits left</p>
                 <p className="mt-1 text-2xl font-extrabold">{credits?.credits ?? user?.credits ?? 0}</p>
               </div>
               <div className="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-800/60">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total predictions</p>
-                <p className="mt-1 text-2xl font-extrabold">{(credits?.freePredictionAvailable ? 0 : 1) + (credits?.credits ?? 0)} available</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Predictions available</p>
+                <p className="mt-1 text-2xl font-extrabold">{credits?.credits ?? 0}</p>
               </div>
             </div>
-            {!credits?.freePredictionAvailable && (credits?.credits ?? 0) === 0 && (
+            {(credits?.credits ?? 0) === 0 && (
               <p className="mt-4 flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-                <FaExclamationTriangle /> Buy a credit pack below to run your next prediction.
+                <FaExclamationTriangle /> Buy a credit pack below to run predictions.
               </p>
             )}
           </section>
@@ -116,7 +110,7 @@ export default function Billing() {
 
           <p className="flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200">
             <FaGift className="mt-0.5 shrink-0" />
-            Every new account starts with one free prediction. Credits are consumed only on successful predictions.
+            Your illness history is free forever. Predictions consume credits, which are only charged on successful predictions.
           </p>
         </>
       )}

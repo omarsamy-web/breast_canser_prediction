@@ -28,7 +28,16 @@ export default function Register() {
       <form onSubmit={submit} className="space-y-4">
         <input className="input" placeholder={t.auth.name} required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <input className="input" placeholder={t.auth.email} type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <p className="text-xs text-slate-500 dark:text-slate-400">Registering as a patient. Your first prediction is free.</p>
+        <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+          <option value="Patient">Patient — my history & paid predictions</option>
+          <option value="Admin">Admin — data analysis & management</option>
+        </select>
+        {form.role === "Patient" && (
+          <p className="text-xs text-slate-500 dark:text-slate-400">Your illness history is free forever. Predictions require credits.</p>
+        )}
+        {form.role === "Admin" && (
+          <p className="text-xs text-slate-500 dark:text-slate-400">Admins get dataset analysis, model evaluation and unlimited predictions.</p>
+        )}
         <input className="input" placeholder={t.auth.password} type="password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         <input className="input" placeholder={t.auth.confirm} type="password" required minLength={8} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
         {error && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-950/40">{error}</p>}

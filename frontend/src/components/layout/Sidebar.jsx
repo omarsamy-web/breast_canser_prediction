@@ -55,7 +55,7 @@ export default function Sidebar() {
       </nav>
       {!isStaff && (
         <div className="mt-8 rounded-xl bg-blue-50 p-4 text-xs leading-relaxed text-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
-          Your first prediction is free. After that, predictions use paid credits — see Credits & Billing.
+          Your illness history is free forever. Predictions require credits — see Credits & Billing.
         </div>
       )}
     </aside>

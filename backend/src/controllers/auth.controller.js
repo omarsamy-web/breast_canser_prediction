@@ -19,8 +19,7 @@ export function publicUser(user) {
     email: user.email,
     role: user.role,
     plan: user.plan || "free",
-    credits: user.credits ?? 0,
-    freePredictionUsed: Boolean(user.freePredictionUsed)
+    credits: user.credits ?? 0
   };
 }
 

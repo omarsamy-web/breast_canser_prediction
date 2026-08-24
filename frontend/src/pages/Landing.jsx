@@ -41,7 +41,7 @@ const features = [
 ];
 
 const steps = [
-  { title: "Create your free account", text: "No credit card required. Start on the Free plan in under a minute." },
+  { title: "Create your account", text: "Sign up as a patient or admin in under a minute — no credit card required." },
   { title: "Upload a dataset", text: "Bring your own CSV or start with the bundled breast cancer dataset." },
   { title: "Train & compare models", text: "One click trains all four models and ranks them by real metrics." },
   { title: "Predict & decide", text: "Get AI-assisted assessments with confidence scores to support clinical judgment." }
@@ -53,8 +53,8 @@ const faqs = [
     a: "No. Bahia AI is a decision-support research tool. It does not diagnose cancer and must never replace professional medical evaluation, imaging, or biopsy."
   },
   {
-    q: "Can I try it for free?",
-    a: "Yes. Every new account gets one full AI risk prediction for free — no credit card required. After that, you buy credits only when you need them."
+    q: "Is my illness history free?",
+    a: "Yes. Patients can record and review their full prediction history completely free. Credits are only needed to run new AI predictions."
   },
   {
     q: "How do payments work?",
@@ -120,7 +120,7 @@ export default function Landing() {
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Link to={token ? "/app" : "/register"} className="rounded-xl bg-medical-blue px-8 py-3.5 text-base font-bold text-white shadow-xl shadow-blue-500/30 transition hover:brightness-110">
-            Start free — no card needed
+            Create account — patients & admins
           </Link>
           <a href="#how-it-works" className="rounded-xl border border-slate-300 bg-white/70 px-8 py-3.5 text-base font-bold transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/70">
             See how it works
@@ -161,10 +161,9 @@ export default function Landing() {
       </section>
 
       <section id="pricing" className="mx-auto max-w-6xl px-6 py-16">
-        <h2 className="text-center text-3xl font-bold">Your first prediction is free</h2>
+        <h2 className="text-center text-3xl font-bold">Pay only when you predict</h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-slate-600 dark:text-slate-300">
-          Every patient account starts with one free AI risk assessment.
-          After that, buy credits only when you need them — no subscription required.
+          Buy credits only when you need them — no subscription required.
           Payments are in preview, so credits are currently granted free of charge.
         </p>
         <div className="mt-10 grid gap-6 sm:grid-cols-3">
@@ -202,7 +201,7 @@ export default function Landing() {
                     : "border border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
                 }`}
               >
-                {token ? "Go to billing" : "Start with a free prediction"}
+                {token ? "Go to billing" : "Create your account"}
               </Link>
             </div>
           ))}
